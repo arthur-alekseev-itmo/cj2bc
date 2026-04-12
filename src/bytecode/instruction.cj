@@ -2,6 +2,7 @@ package cj2bc.bytecode
 
 import std.collection.ArrayList
 import cj2bc.bytecode.util.appendInt64
+import cj2bc.bytecode.util.appendInt32
 
 public enum Instruction <: ToString {
     // TODO: Refresh in CPP
@@ -28,10 +29,10 @@ public enum Instruction <: ToString {
     | Return
     | ReadStack(UInt32)
     | WriteStack(UInt64)
-    | AllocateLocals(Int32)
-    | LoadLocal(Int32)
-    | StoreLocal(Int32)
-    | GetLocalRef(Int32)
+    | AllocateLocals(UInt32)
+    | LoadLocal(UInt32)
+    | StoreLocal(UInt32)
+    | GetLocalRef(UInt32)
     | Call(UInt32)
     | CallObject
     | Swap
@@ -39,12 +40,56 @@ public enum Instruction <: ToString {
     | Not
     | WriteToRef
 
+    private func addCommand0To(tag: Byte, target: ArrayList<Byte>): Unit {
+        target.add(tag)
+    }
+
+    private func addCommand32To(tag: Byte, arg: UInt32, target: ArrayList<Byte>): Unit {
+        target.add(tag)
+        appendInt32(arg, target)
+    }
+
+    private func addCommand64To(tag: Byte, arg: UInt64, target: ArrayList<Byte>): Unit {
+        target.add(tag)
+        appendInt64(arg, target)
+    }
+
 
     public func serializeTo(target: ArrayList<Byte>): Unit {
         match (this) {
-            case LoadImm(x) => target.add(1); appendInt64(x, target)
-            case Add => target.add(2)
-            case _ => throw Exception("todo")
+            case Nop => addCommand0To(0x0, target)
+            case LoadImm(x) => addCommand64To(0x1, x, target)
+            case Add => addCommand0To(0x2, target)
+            case Sub => addCommand0To(0x3, target)
+            case Mul => addCommand0To(0x4, target)
+            case Div => addCommand0To(0x5, target)
+            case Eq => addCommand0To(0x6, target)
+            case Neq => addCommand0To(0x7, target)
+            case Le => addCommand0To(0x8, target)
+            case Ge => addCommand0To(0x9, target)
+            case Lt => addCommand0To(0xa, target)
+            case Gt => addCommand0To(0xb, target)
+            case CallCVU64(x) => addCommand64To(0xc, x, target)
+            case CallCVStackPtr(x) => addCommand64To(0xd, x, target)
+            case Exit => addCommand0To(0xe, target)
+            case Dup => addCommand0To(0xf, target)
+            case Drop => addCommand0To(0x10, target)
+            case Jump(x) => addCommand32To(0x11, x, target)
+            case JumpTrue(x) => addCommand32To(0x12, x, target)
+            case JumpFalse(x) => addCommand32To(0x13, x, target)
+            case Return => addCommand0To(0x14, target)
+            case ReadStack(x) => addCommand32To(0x15, x, target)
+            case WriteStack(x) => addCommand64To(0x16, x, target)
+            case LoadLocal(x) => addCommand32To(0x17, x, target)
+            case StoreLocal(x) => addCommand32To(0x18, x, target)
+            case GetLocalRef(x) => addCommand32To(0x19, x, target)
+            case AllocateLocals(x) => addCommand32To(0x1a, x, target)
+            case Call(x) => addCommand32To(0x1b, x, target)
+            case CallObject => addCommand0To(0x1c, target)
+            case Swap => addCommand0To(0x1d, target)
+            case Neg => addCommand0To(0x1e, target)
+            case Not => addCommand0To(0x1f, target)
+            case WriteToRef => addCommand0To(0x20, target)
         }
     }
 

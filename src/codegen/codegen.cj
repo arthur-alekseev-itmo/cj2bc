@@ -7,7 +7,6 @@ import cj2bc.utils.todo
 import std.collection.ArrayList
 
 public class Codegen {
-
     private var branchIndex = 0;
     private func getBranchNextIndex() {
         branchIndex++
@@ -114,7 +113,6 @@ public class Codegen {
             case ScReturn(expr) => todo()
             case ScAssign(target, expr) => todo()
             case ScVarRef(name) => compileVarAsRefTo(name, state)
-
         }
     }
 
@@ -131,7 +129,7 @@ public class Codegen {
 
     private func compileVarTo(name: String, state: CodegenState) {
         // TODO: Proper location fetching
-        let localIndex = 0i32
+        let localIndex = 0u32
         state.bytecode.addInstruction(LoadLocal(localIndex))
     }
 
