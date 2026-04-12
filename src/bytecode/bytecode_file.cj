@@ -1,12 +1,11 @@
 package  cj2bc.bytecode
 import std.collection.ArrayList
 import cj2bc.bytecode.util.appendInt32
-import std.fs
 import std.fs.File
 import std.fs.OpenMode
 
 public struct BytecodeFileHeader {
-    let magic: UInt32 = 0x67746667
+    let magic: UInt32 = 0x67746667 // CJBC
     let size: UInt32
 
     init(size: UInt32) {

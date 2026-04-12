@@ -96,8 +96,12 @@ public class Codegen {
     }
 
     private func compileVarAsRefTo(name: String, state: CodegenState) {
-        let index = state.locals.getVariable(name)
-        state.bytecode.addInstruction(GetLocalRef(index))
+        let variable = state.locals.getVariable(name) ?? throw Exception("Variable was not found: " + name)
+        match (variable) {
+            case GlobalVariable(x) => state.bytecode.addInstruction(GetGlobalRef(x))
+            case LocalVariable(x) => state.bytecode.addInstruction(GetLocalRef(x))
+            case ClosureVariable(x) => state.bytecode.addInstruction(GetClosureRef(x))
+        }
     }
 
     private func compileExprAsRefTo(expr: SimpleExpr, state: CodegenState) {
@@ -128,9 +132,15 @@ public class Codegen {
     }
 
     private func compileVarTo(name: String, state: CodegenState) {
-        // TODO: Proper location fetching
-        let localIndex = 0u32
-        state.bytecode.addInstruction(LoadLocal(localIndex))
+        let variable = state.locals.getVariable(name)
+        match (variable) {
+            case Some(GlobalVariable(x)) => state.bytecode.addInstruction(LoadGlobal(x))
+            case Some(LocalVariable(x)) => state.bytecode.addInstruction(LoadLocal(x))
+            case Some(ClosureVariable(x)) => state.bytecode.addInstruction(LoadClosure(x))
+            case None =>
+                state.bytecode.addInstruction(LoadGlobal(UInt32.Max))
+                createRelocationHere(name, 1, 4, state)
+        }
     }
 
     private func compileAssignTo(target: SimpleExpr, expr: SimpleExpr, state: CodegenState) {
@@ -158,20 +168,23 @@ public class Codegen {
     private func storePatternTo(pattern: SimplePattern, state: CodegenState) {
         match (pattern) {
             case ScVariable(name) =>
-                let index = state.locals.addVariable(name)
-                state.bytecode.addInstruction(StoreLocal(index))
+                let variable = state.locals.addVariable(name)
+                match (variable) {
+                    case GlobalVariable(x) => state.bytecode.addInstruction(StoreGlobal(x))
+                    case LocalVariable(x) => state.bytecode.addInstruction(StoreLocal(x))
+                    case ClosureVariable(x) => state.bytecode.addInstruction(StoreClosure(x))
+                }
         }
     }
 
     private func compileFunDeclTo(decl: FuncDeclData, state: CodegenState) {
-        // TODO: Push a fresh stack frame for recursive declarations
         createSymbolHere(decl.name, state)
-        state.locals.clear()
+        state.pushLocalsFrame()
         for (parameter in decl.parameters) {
             storePatternTo(parameter, state)
         }
         compileBlockTo(decl.body, state)
-
+        state.popLocalsFrame()
     }
 
     private func compileVarDeclTo(pattern: SimplePattern, expr: SimpleExpr, state: CodegenState) {
@@ -193,12 +206,23 @@ public class Codegen {
     }
 
     private func compileProgramTo(program: SimpleProgram, state: CodegenState) {
-        program.map { decl: SimpleDecl => compileDeclTo(decl, state) }
+       program.map { decl: SimpleDecl => compileDeclTo(decl, state) }
+    }
+
+    private func appendBuiltinsTo(state: CodegenState) {
+        // print(x) {
+        //   builin_print(x)
+        // }
+        createSymbolHere("print", state)
+        state.bytecode.addInstruction(LoadLocal(0))
+        state.bytecode.addInstruction(CallBuiltin(0))
+        state.bytecode.addInstruction(Return)
     }
 
     public func compileProgram(program: SimpleProgram): CodegenState {
         let state = CodegenState()
         compileProgramTo(program, state)
+        appendBuiltinsTo(state)
         state
     }
-}
+  }

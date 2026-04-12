@@ -2,7 +2,6 @@ package cj2bc.codegen
 
 import std.collection.HashMap
 import std.collection.ArrayList
-import std.convert.Formattable
 
 public struct LinkerRelocation <: ToString {
     let instructionPosition: Int32

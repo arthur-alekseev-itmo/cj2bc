@@ -28,13 +28,20 @@ public enum Instruction <: ToString {
     | JumpFalse(UInt32)
     | Return
     | ReadStack(UInt32)
-    | WriteStack(UInt64)
+    | WriteStack(UInt32)
     | AllocateLocals(UInt32)
     | LoadLocal(UInt32)
+    | LoadGlobal(UInt32)
+    | LoadClosure(UInt32)
     | StoreLocal(UInt32)
+    | StoreGlobal(UInt32)
+    | StoreClosure(UInt32)
     | GetLocalRef(UInt32)
+    | GetGlobalRef(UInt32)
+    | GetClosureRef(UInt32)
     | Call(UInt32)
     | CallObject
+    | CallBuiltin(UInt32)
     | Swap
     | Neg
     | Not
@@ -54,7 +61,7 @@ public enum Instruction <: ToString {
         appendInt64(arg, target)
     }
 
-
+    // TODO: Sort neatly
     public func serializeTo(target: ArrayList<Byte>): Unit {
         match (this) {
             case Nop => addCommand0To(0x0, target)
@@ -79,17 +86,25 @@ public enum Instruction <: ToString {
             case JumpFalse(x) => addCommand32To(0x13, x, target)
             case Return => addCommand0To(0x14, target)
             case ReadStack(x) => addCommand32To(0x15, x, target)
-            case WriteStack(x) => addCommand64To(0x16, x, target)
+            case WriteStack(x) => addCommand32To(0x16, x, target)
             case LoadLocal(x) => addCommand32To(0x17, x, target)
-            case StoreLocal(x) => addCommand32To(0x18, x, target)
-            case GetLocalRef(x) => addCommand32To(0x19, x, target)
-            case AllocateLocals(x) => addCommand32To(0x1a, x, target)
-            case Call(x) => addCommand32To(0x1b, x, target)
-            case CallObject => addCommand0To(0x1c, target)
-            case Swap => addCommand0To(0x1d, target)
-            case Neg => addCommand0To(0x1e, target)
-            case Not => addCommand0To(0x1f, target)
-            case WriteToRef => addCommand0To(0x20, target)
+            case LoadGlobal(x) => addCommand32To(0x18, x, target)
+            case LoadClosure(x) => addCommand32To(0x19, x, target)
+            case StoreLocal(x) => addCommand32To(0x1a, x, target)
+            case StoreGlobal(x) => addCommand32To(0x1b, x, target)
+            case StoreClosure(x) => addCommand32To(0x1c, x, target)
+            case GetLocalRef(x) => addCommand32To(0x1d, x, target)
+            case GetGlobalRef(x) => addCommand32To(0x1e, x, target)
+            case GetClosureRef(x) => addCommand32To(0x1f, x, target)
+            case AllocateLocals(x) => addCommand32To(0x20, x, target)
+            case Call(x) => addCommand32To(0x21, x, target)
+            case CallObject => addCommand0To(0x22, target)
+            case CallBuiltin(x) => addCommand32To(0x23, x, target)
+            case Swap => addCommand0To(0x24, target)
+            case Neg => addCommand0To(0x25, target)
+            case Not => addCommand0To(0x26, target)
+            case WriteToRef => addCommand0To(0x27, target)
+
         }
     }
 
@@ -119,11 +134,18 @@ public enum Instruction <: ToString {
             case ReadStack(x) => return "ReadStack ${x}"
             case WriteStack(x) => return "WriteStack ${x}"
             case LoadLocal(x) => return "LoadLocal ${x}"
+            case LoadGlobal(x) => return "LoadGlobal ${x}"
+            case LoadClosure(x) => return "LoadClosure ${x}"
             case StoreLocal(x) => return "StoreLocal ${x}"
+            case StoreGlobal(x) => return "StoreGlobal ${x}"
+            case StoreClosure(x) => return "StoreClosure ${x}"
             case GetLocalRef(x) => return "GetLocalRef ${x}"
+            case GetGlobalRef(x) => return "GetGlobalRef ${x}"
+            case GetClosureRef(x) => return "GetClosureRef ${x}"
             case AllocateLocals(x) => return "AllocateLocals ${x}"
             case Call(x) => return "Call ${x}"
             case CallObject => return "CallRef"
+            case CallBuiltin(x) => return "CallBuiltin ${x}"
             case Swap => return "Swap"
             case Neg => return "Neg"
             case Not => return "Not"
