@@ -1,7 +1,7 @@
 package cj2bc.bytecode
 
 import std.collection.ArrayList
-import cj2bc.bytecode.util.*
+import cj2bc.bytecode.util.appendInt64
 
 public enum Instruction <: ToString {
     // TODO: Refresh in CPP
@@ -30,6 +30,7 @@ public enum Instruction <: ToString {
     | WriteStack(UInt64)
     | AllocateLocals(Int32)
     | LoadLocal(Int32)
+    | StoreLocal(Int32)
     | GetLocalRef(Int32)
     | Call(UInt32)
     | CallObject
@@ -39,7 +40,7 @@ public enum Instruction <: ToString {
     | WriteToRef
 
 
-    public func serializeTo(target: ArrayList<Byte>) {
+    public func serializeTo(target: ArrayList<Byte>): Unit {
         match (this) {
             case LoadImm(x) => target.add(1); appendInt64(x, target)
             case Add => target.add(2)
@@ -47,7 +48,7 @@ public enum Instruction <: ToString {
         }
     }
 
-    public func toString() {
+    public func toString(): String {
         match (this) {
             case Nop => return "Nop"
             case LoadImm(x) => return "LoadImm ${x}"
@@ -73,6 +74,7 @@ public enum Instruction <: ToString {
             case ReadStack(x) => return "ReadStack ${x}"
             case WriteStack(x) => return "WriteStack ${x}"
             case LoadLocal(x) => return "LoadLocal ${x}"
+            case StoreLocal(x) => return "StoreLocal ${x}"
             case GetLocalRef(x) => return "GetLocalRef ${x}"
             case AllocateLocals(x) => return "AllocateLocals ${x}"
             case Call(x) => return "Call ${x}"

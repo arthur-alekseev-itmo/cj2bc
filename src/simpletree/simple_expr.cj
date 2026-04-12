@@ -19,7 +19,7 @@ public enum SimpleExpr {
     | ScConstUnit
     | ScConstInt64(Int64)
     | ScConstBool(Bool)
-    | ScIfThenElse(SimpleExpr, SimpleExpr, SimpleExpr)
+    | ScIfThenElse(SimpleExpr, SimpleExpr, ?SimpleExpr)
     | ScBinaryOperator(SimpleBinaryOperator, SimpleExpr, SimpleExpr)
     | ScUnaryOperator(SimpleUnaryOperator, SimpleExpr)
     | ScCall(SimpleExpr, ArrayList<SimpleExpr>)

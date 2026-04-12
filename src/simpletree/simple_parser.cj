@@ -78,7 +78,12 @@ public class SimpleParser {
     private func translateIfExpr(ifExpr: IfExpr): SimpleExpr {
         let condition = translateExpr(ifExpr.condition)
         let thenBranch = translateBlock(ifExpr.ifBlock)
-        let elseBranch = translateExpr(ifExpr.elseExpr)
+        // TODO: Шедевр я не могу
+        let elseBranch = try {
+            Some(translateExpr(ifExpr.elseExpr))
+        } catch (_) {
+            None<SimpleExpr>
+        }
         ScIfThenElse(condition, ScBlockExpr(thenBranch), elseBranch)
     }
 
@@ -167,11 +172,12 @@ public class SimpleParser {
             ScVariable(param.identifier.value)
         }
         let body = translateBlock(funcDecl.block)
-        ScFuncDecl(FuncDeclData(parameters, body))
+        ScFuncDecl(FuncDeclData(funcDecl.identifier.value, parameters, body))
     }
 
     private func translateMainDecl(mainDecl: MainDecl) {
         let funcDecl = FuncDecl()
+        funcDecl.identifier = mainDecl.identifier
         funcDecl.funcParams = mainDecl.funcParams
         funcDecl.block = mainDecl.block
         return translateFuncDecl(funcDecl)

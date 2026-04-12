@@ -2,14 +2,14 @@ package cj2bc.bytecode.util
 
 import std.collection.ArrayList
 
-public func appendInt32(n: UInt32, bc: ArrayList<Byte>){
+public func appendInt32(n: UInt32, bc: ArrayList<Byte>): Unit {
     bc.add(UInt8(n & 0xFF))
     bc.add(UInt8((n >> 8) & 0xFF))
     bc.add(UInt8((n >> 16) & 0xFF))
     bc.add(UInt8((n >> 24) & 0xFF))
 }
 
-public func appendInt64(n: UInt64, bc: ArrayList<Byte>){
+public func appendInt64(n: UInt64, bc: ArrayList<Byte>): Unit {
     bc.add(UInt8(n & 0xFF))
     bc.add(UInt8((n >> 8) & 0xFF))
     bc.add(UInt8((n >> 16) & 0xFF))
@@ -20,7 +20,7 @@ public func appendInt64(n: UInt64, bc: ArrayList<Byte>){
     bc.add(UInt8((n >> 56) & 0xFF))
 }
 
-public func zeroExtend(padding: Int64, content: Int64) {
+public func zeroExtend(padding: Int64, content: Int64): String {
     let serialized = content.toString()
     let zeroCount = padding - serialized.size
     if (zeroCount <= 0) {

@@ -5,13 +5,13 @@ import cj2bc.bytecode.Bytecode
 import cj2bc.bytecode.Instruction
 import cj2bc.utils.todo
 import std.collection.ArrayList
-import std.ast.RefExpr
 
 public class Codegen {
 
     private var branchIndex = 0;
     private func getBranchNextIndex() {
         branchIndex++
+        branchIndex
     }
 
     private func createSymbolHere(name: String, state: CodegenState) {
@@ -20,7 +20,7 @@ public class Codegen {
     }
 
     private func createRelocationHere(name: String, offset: Int32, size: Int32, state: CodegenState) {
-        let idx = Int32(state.bytecode.getCurrentInstructionIndex())
+        let idx = Int32(state.bytecode.getCurrentInstructionIndex() - 1)
         state.linkerData.addRelocation(name, idx, offset, size)
     }
 
@@ -41,19 +41,23 @@ public class Codegen {
         state.bytecode.addInstruction(LoadImm(UInt64(value)))
     }
 
-    private func compileIfThenElseTo(cond: SimpleExpr, thenBr: SimpleExpr, elseBr: SimpleExpr, state: CodegenState): Unit {
+    private func compileIfThenElseTo(cond: SimpleExpr, thenBr: SimpleExpr, elseBr: ?SimpleExpr, state: CodegenState): Unit {
         let branchIndex = getBranchNextIndex()
         compileExprTo(cond, state)
 
         state.bytecode.addInstruction(JumpFalse(UInt32.Max))
-        createRelocationHere("$BRANCH_ELSE_${branchIndex}", 1, 4, state)
+        createRelocationHere("$BRANCH_ELSE_${branchIndex}", 4, 1, state)
 
         compileExprTo(thenBr, state)
         state.bytecode.addInstruction(Jump(UInt32.Max))
-        createRelocationHere("$BRANCH_END_${branchIndex}", 1, 4, state)
+        createRelocationHere("$BRANCH_END_${branchIndex}", 4, 1, state)
         createSymbolHere("$BRANCH_ELSE_${branchIndex}", state)
 
-        compileExprTo(elseBr, state)
+        match (elseBr) {
+            case Some(e) => compileExprTo(e, state)
+            case None => ()
+        }
+
         let elseEndIndex = Int32(state.bytecode.getCurrentInstructionIndex())
 
         createSymbolHere("$BRANCH_END_${branchIndex}", state)
@@ -66,7 +70,12 @@ public class Codegen {
             case Add => Instruction.Add
             case Sub => Instruction.Sub
             case Mul => Instruction.Mul
+            case Div => Instruction.Div
             case Eq => Instruction.Eq
+            case Le => Instruction.Le
+            case Lt => Instruction.Lt
+            case Ge => Instruction.Ge
+            case Gt => Instruction.Gt
             case _ => todo()
         }
         state.bytecode.addInstruction(instruction)
@@ -82,9 +91,14 @@ public class Codegen {
     }
 
     private func compileCallTo(callee: SimpleExpr, arguments: ArrayList<SimpleExpr>, state: CodegenState) {
+        compileExprTo(callee, state)
         arguments.map { argument: SimpleExpr => compileExprTo(argument, state) }
-        // TODO: Load callee as expr, not as object
-        compileExprAsRefTo(callee, state)
+        state.bytecode.addInstruction(Instruction.CallObject)
+    }
+
+    private func compileVarAsRefTo(name: String, state: CodegenState) {
+        let index = state.locals.getVariable(name)
+        state.bytecode.addInstruction(GetLocalRef(index))
     }
 
     private func compileExprAsRefTo(expr: SimpleExpr, state: CodegenState) {
@@ -99,12 +113,15 @@ public class Codegen {
             case ScBlockExpr(block) => todo()
             case ScReturn(expr) => todo()
             case ScAssign(target, expr) => todo()
-            case ScVarRef(v) => todo()
+            case ScVarRef(name) => compileVarAsRefTo(name, state)
+
         }
     }
 
-    private func compileBlockTo(block: SimpleBlock, state: CodegenState) {
-        todo()
+    private func compileBlockTo(block: SimpleBlock, state: CodegenState): Unit {
+        for (decl in block) {
+            compileDeclTo(decl, state)
+        }
     }
 
     private func compileReturnTo(returnExpr: SimpleExpr, state: CodegenState) {
@@ -140,11 +157,40 @@ public class Codegen {
         }
     }
 
+    private func storePatternTo(pattern: SimplePattern, state: CodegenState) {
+        match (pattern) {
+            case ScVariable(name) =>
+                let index = state.locals.addVariable(name)
+                state.bytecode.addInstruction(StoreLocal(index))
+        }
+    }
+
+    private func compileFunDeclTo(decl: FuncDeclData, state: CodegenState) {
+        // TODO: Push a fresh stack frame for recursive declarations
+        createSymbolHere(decl.name, state)
+        state.locals.clear()
+        for (parameter in decl.parameters) {
+            storePatternTo(parameter, state)
+        }
+        compileBlockTo(decl.body, state)
+
+    }
+
+    private func compileVarDeclTo(pattern: SimplePattern, expr: SimpleExpr, state: CodegenState) {
+        compileExprTo(expr, state)
+        storePatternTo(pattern, state)
+    }
+
+    private func compileRunExprTo(expr: SimpleExpr, state: CodegenState) {
+        compileExprTo(expr, state)
+        state.bytecode.addInstruction(Drop)
+    }
+
     private func compileDeclTo(decl: SimpleDecl, state: CodegenState) {
         match (decl) {
-            case ScFuncDecl(data) => todo()
-            case ScVarDecl(pattern, expr) => todo()
-            case ScRunExpr(expr) => todo()
+            case ScFuncDecl(data) => compileFunDeclTo(data, state)
+            case ScVarDecl(pattern, expr) => compileVarDeclTo(pattern, expr, state)
+            case ScRunExpr(expr) => compileRunExprTo(expr, state)
         }
     }
 
@@ -152,7 +198,7 @@ public class Codegen {
         program.map { decl: SimpleDecl => compileDeclTo(decl, state) }
     }
 
-    public func compileProgram(program: SimpleProgram) {
+    public func compileProgram(program: SimpleProgram): CodegenState {
         let state = CodegenState()
         compileProgramTo(program, state)
         state

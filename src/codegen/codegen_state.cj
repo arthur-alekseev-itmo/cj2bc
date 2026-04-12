@@ -3,6 +3,7 @@ package cj2bc.codegen
 import cj2bc.bytecode.Bytecode
 
 public class CodegenState {
-    let bytecode = Bytecode()
-    let linkerData = LinkerData()
+    public let bytecode = Bytecode()
+    public let linkerData = LinkerData()
+    public let locals = LocalsContext()
 }

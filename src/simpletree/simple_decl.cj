@@ -5,12 +5,14 @@ import std.collection.ArrayList
 public type SimpleBlock = ArrayList<SimpleDecl>
 
 public class FuncDeclData {
-    let parameters: ArrayList<SimplePattern>
-    let body: SimpleBlock
+    public let parameters: ArrayList<SimplePattern>
+    public let body: SimpleBlock
+    public let name: String
 
-    init(parameters: ArrayList<SimplePattern>, body: SimpleBlock) {
+    init(name: String, parameters: ArrayList<SimplePattern>, body: SimpleBlock) {
         this.parameters = parameters
         this.body = body
+        this.name = name
     }
 }
 
