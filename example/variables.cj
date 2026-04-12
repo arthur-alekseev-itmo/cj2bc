@@ -4,5 +4,5 @@ main(): Int64 {
     y = 77
     y = 13
     print(x + y + 7)
-    0
+    return 0
 }
