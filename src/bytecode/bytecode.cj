@@ -36,6 +36,10 @@ public class Bytecode <: ToString {
     }
 
     public func getCurrentInstructionIndex(): Int64 {
-        return instructions.size
+        instructions.size
+    }
+
+    public func getInstructionArray() {
+        instructions
     }
 }

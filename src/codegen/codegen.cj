@@ -13,9 +13,19 @@ public class Codegen {
         branchIndex
     }
 
-    private func createSymbolHere(name: String, state: CodegenState) {
-        let idx = Int32(state.bytecode.getCurrentInstructionIndex())
-        state.linkerData.addSymbol(name, idx)
+    private func createFunctionHere(name: String, state: CodegenState) {
+        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
+        state.linkerData.addSymbol(name, LocGlobalFunction(idx))
+    }
+
+    private func createLabelHere(name: String, state: CodegenState) {
+        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
+        state.linkerData.addSymbol(name, LocLabel(idx))
+    }
+
+    private func createGlobalHere(name: String, state: CodegenState) {
+        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
+        state.linkerData.addSymbol(name, LocGlobalVariable(idx))
     }
 
     private func createRelocationHere(name: String, offset: Int32, size: Int32, state: CodegenState) {
@@ -50,7 +60,7 @@ public class Codegen {
         compileExprTo(thenBr, state)
         state.bytecode.addInstruction(Jump(UInt32.Max))
         createRelocationHere("$BRANCH_END_${branchIndex}", 4, 1, state)
-        createSymbolHere("$BRANCH_ELSE_${branchIndex}", state)
+        createLabelHere("$BRANCH_ELSE_${branchIndex}", state)
 
         match (elseBr) {
             case Some(e) => compileExprTo(e, state)
@@ -59,7 +69,7 @@ public class Codegen {
 
         let elseEndIndex = Int32(state.bytecode.getCurrentInstructionIndex())
 
-        createSymbolHere("$BRANCH_END_${branchIndex}", state)
+        createLabelHere("$BRANCH_END_${branchIndex}", state)
     }
 
     private func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: SimpleExpr, right: SimpleExpr, state: CodegenState) {
@@ -139,7 +149,7 @@ public class Codegen {
             case Some(ClosureVariable(x)) => state.bytecode.addInstruction(LoadClosure(x))
             case None =>
                 state.bytecode.addInstruction(LoadGlobal(UInt32.Max))
-                createRelocationHere(name, 1, 4, state)
+                createRelocationHere(name, 4, 1, state)
         }
     }
 
@@ -178,7 +188,7 @@ public class Codegen {
     }
 
     private func compileFunDeclTo(decl: FuncDeclData, state: CodegenState) {
-        createSymbolHere(decl.name, state)
+        createFunctionHere(decl.name, state)
         state.pushLocalsFrame()
         for (parameter in decl.parameters) {
             storePatternTo(parameter, state)
@@ -213,7 +223,7 @@ public class Codegen {
         // print(x) {
         //   builin_print(x)
         // }
-        createSymbolHere("print", state)
+        createFunctionHere("print", state)
         state.bytecode.addInstruction(LoadLocal(0))
         state.bytecode.addInstruction(CallBuiltin(0))
         state.bytecode.addInstruction(Return)

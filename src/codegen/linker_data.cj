@@ -17,15 +17,30 @@ public struct LinkerRelocation <: ToString {
     }
 
     public func toString() {
-        return "Symbol: ${symbolName}, Instruction: ${instructionOffset}, Position: ${instructionPosition}, Size: ${size}"
+        return "Symbol: ${symbolName}, Offset: ${instructionOffset}, Position: ${instructionPosition}, Size: ${size}"
+    }
+}
+
+
+public enum LinkerLocation <: ToString {
+    | LocGlobalVariable(UInt32)
+    | LocGlobalFunction(UInt32)
+    | LocLabel(UInt32)
+
+    public func toString(): String {
+        match (this) {
+            case LocGlobalVariable(x) => "LocGlobalVariable ${x}"
+            case LocGlobalFunction(x) => "LocGlobalFunction ${x}"
+            case LocLabel(x) => "LocLabel ${x}"
+        }
     }
 }
 
 public class LinkerData <: ToString {
-    let symbolLocations = HashMap<String, Int32>()
+    let symbolLocations = HashMap<String, LinkerLocation>()
     let relocations = ArrayList<LinkerRelocation>()
 
-    public func addSymbol(name: String, location: Int32): Unit {
+    public func addSymbol(name: String, location: LinkerLocation): Unit {
         symbolLocations.add(name, location)
     }
 
@@ -42,7 +57,8 @@ public class LinkerData <: ToString {
 
         sb.append("LOCATIONS\n")
         for (location in symbolLocations.keys()) {
-            sb.append("${location}: ${symbolLocations[location]}\n")
+            let string: String = "${location}: ${symbolLocations[location]}\n"
+            sb.append(string)
         }
 
         return sb.toString()

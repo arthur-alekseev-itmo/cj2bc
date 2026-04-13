@@ -6,6 +6,7 @@ import std.io.readString
 import cj2bc.simpletree.SimpleParser
 import cj2bc.codegen.Codegen
 import cj2bc.bytecode.BytecodeFile
+import cj2bc.codegen.Linker
 
 main(): Int64 {
     let exampleFib = "/Users/arthur/Documents/cj2bc/example/even.cj"
@@ -14,6 +15,9 @@ main(): Int64 {
 
     let simpleProgram = SimpleParser().parse(content)
     let state = Codegen().compileProgram(simpleProgram)
+    println(state.bytecode.toString())
+    println(state.linkerData.toString())
+    Linker().link(state)
     println(state.bytecode.toString())
     println(state.linkerData.toString())
 

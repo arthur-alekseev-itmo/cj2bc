@@ -46,6 +46,7 @@ public enum Instruction <: ToString {
     | Neg
     | Not
     | WriteToRef
+    | FunctionAddress(UInt32)
 
     private func addCommand0To(tag: Byte, target: ArrayList<Byte>): Unit {
         target.add(tag)
@@ -104,7 +105,7 @@ public enum Instruction <: ToString {
             case Neg => addCommand0To(0x25, target)
             case Not => addCommand0To(0x26, target)
             case WriteToRef => addCommand0To(0x27, target)
-
+            case FunctionAddress(x) => addCommand32To(0x28, x, target)
         }
     }
 
@@ -150,6 +151,7 @@ public enum Instruction <: ToString {
             case Neg => return "Neg"
             case Not => return "Not"
             case WriteToRef => return "WriteToRef"
+            case FunctionAddress(x) => return "FunctionAddress ${x}"
         }
     }
 }
