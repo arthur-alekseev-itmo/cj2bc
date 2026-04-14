@@ -53,8 +53,9 @@ public class Codegen {
     private func compileIfThenElseTo(cond: SimpleExpr, thenBr: SimpleExpr, elseBr: ?SimpleExpr, state: CodegenState): Unit {
         let branchIndex = getBranchNextIndex()
         compileExprTo(cond, state)
+        state.bytecode.addInstruction(Instruction.Not)
 
-        state.bytecode.addInstruction(JumpFalse(UInt32.Max))
+        state.bytecode.addInstruction(JumpTrue(UInt32.Max))
         createRelocationHere("$BRANCH_ELSE_${branchIndex}", 4, 1, state)
 
         compileExprTo(thenBr, state)
@@ -64,7 +65,7 @@ public class Codegen {
 
         match (elseBr) {
             case Some(e) => compileExprTo(e, state)
-            case None => ()
+            case None => state.bytecode.addInstruction(LoadImm(0))
         }
 
         let elseEndIndex = Int32(state.bytecode.getCurrentInstructionIndex())
@@ -100,8 +101,8 @@ public class Codegen {
     }
 
     private func compileCallTo(callee: SimpleExpr, arguments: ArrayList<SimpleExpr>, state: CodegenState) {
-        compileExprTo(callee, state)
         arguments.map { argument: SimpleExpr => compileExprTo(argument, state) }
+        compileExprTo(callee, state)
         state.bytecode.addInstruction(Instruction.CallObject)
     }
 
@@ -224,8 +225,8 @@ public class Codegen {
         //   builin_print(x)
         // }
         createFunctionHere("print", state)
-        state.bytecode.addInstruction(LoadLocal(0))
         state.bytecode.addInstruction(CallBuiltin(0))
+        state.bytecode.addInstruction(LoadImm(0))
         state.bytecode.addInstruction(Return)
     }
 

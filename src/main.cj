@@ -9,19 +9,19 @@ import cj2bc.bytecode.BytecodeFile
 import cj2bc.codegen.Linker
 
 main(): Int64 {
-    let exampleFib = "/Users/arthur/Documents/cj2bc/example/even.cj"
+    let exampleName = "functions/factorial.cj"
+
+    let exampleFib = "/Users/arthur/Documents/cj2bc/example/${exampleName}"
     let input = File(exampleFib, OpenMode.Read)
     let content = readString(input)
 
     let simpleProgram = SimpleParser().parse(content)
     let state = Codegen().compileProgram(simpleProgram)
-    println(state.bytecode.toString())
-    println(state.linkerData.toString())
     Linker().link(state)
     println(state.bytecode.toString())
     println(state.linkerData.toString())
 
     let file = BytecodeFile(state.bytecode)
-    file.save("even.cjbc")
+    file.save("out.cjbc")
     0
 }

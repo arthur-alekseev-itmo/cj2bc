@@ -21,7 +21,6 @@ public class Linker {
             case other =>
                 throw Exception("Unsupported relocation size: ${other}")
         }
-        println(instructions[index].toString())
     }
 
     private func patchLabel32(instruction: Instruction, data: UInt32): Instruction {

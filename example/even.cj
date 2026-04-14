@@ -1,8 +1,8 @@
 func odd(x: Int64): Bool {
     return if (x == 0) {
-        false
+        return false
     } else {
-        !even(x)
+        return !even(x)
     }
 }
 
