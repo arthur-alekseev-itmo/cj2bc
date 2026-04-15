@@ -3,5 +3,6 @@ target
 .idea
 .cache
 .DS_Store
+.env
 
 *.cjbc

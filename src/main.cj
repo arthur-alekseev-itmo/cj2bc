@@ -7,21 +7,50 @@ import cj2bc.simpletree.SimpleParser
 import cj2bc.codegen.Codegen
 import cj2bc.bytecode.BytecodeFile
 import cj2bc.codegen.Linker
+import std.argopt.*
 
-main(): Int64 {
-    let exampleName = "functions/factorial.cj"
+main(args: Array<String>): Int64 {
+    let argSpecs = [
+        Full("input", r'i', RequiredValue),
+        Full("output", r'o', RequiredValue),
+        Full("print", r'p', OptionalValue)
+    ]
+    try {
+        var result = parseArguments(args, argSpecs)
 
-    let exampleFib = "/Users/arthur/Documents/cj2bc/example/${exampleName}"
-    let input = File(exampleFib, OpenMode.Read)
-    let content = readString(input)
+        let input = match (result.options.get("input")) {
+            case Some(i) => i
+            case None => throw Exception("Input must be specified")
+        }
 
-    let simpleProgram = SimpleParser().parse(content)
-    let state = Codegen().compileProgram(simpleProgram)
-    Linker().link(state)
-    println(state.bytecode.toString())
-    println(state.linkerData.toString())
+        let output = match (result.options.get("output")) {
+            case Some(i) => i
+            case None => "out.cjbc"
+        }
 
-    let file = BytecodeFile(state.bytecode)
-    file.save("out.cjbc")
-    0
+        let print = match (result.options.get("print")) {
+            case Some(i) => i == "" || i == "true"
+            case None => false
+        }
+
+        let inputFile = File(input, OpenMode.Read)
+        let content = readString(inputFile)
+        let simpleProgram = SimpleParser().parse(content)
+        let state = Codegen().compileProgram(simpleProgram)
+        Linker().link(state)
+
+        if (print) {
+            println(state.bytecode.toString())
+            println(state.linkerData.toString())
+        }
+
+        let file = BytecodeFile(state.bytecode)
+        file.save(output)
+
+    } catch (e: ArgumentParseException) {
+        println("Usage: error")
+        return 1
+    }
+
+    return 0
 }
