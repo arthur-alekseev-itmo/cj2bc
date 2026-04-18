@@ -9,7 +9,6 @@ public class SimpleParser {
     public func parse(input: String) {
         let tokens = cangjieLex(input)
         let program = parseProgram(tokens)
-        program.dump()
         return program.decls.map { decl: Decl =>
             translateDecl(decl)
         }
