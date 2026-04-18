@@ -16,6 +16,9 @@ public class Linker {
         let instructions = state.bytecode.getInstructionArray()
         instructions[index] = match (relocation.size) {
             case 4 =>
+                if (!state.linkerData.symbolLocations.contains(relocation.symbolName)) {
+                    throw Exception("Symbol not found: ${relocation.symbolName}")
+                }
                 let data = state.linkerData.symbolLocations[relocation.symbolName]
                 patch32(instructions[index], data)
             case other =>

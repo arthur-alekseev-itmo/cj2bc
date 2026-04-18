@@ -28,9 +28,9 @@ public class Codegen {
         state.linkerData.addSymbol(name, LocGlobalVariable(idx))
     }
 
-    private func createRelocationHere(name: String, offset: Int32, size: Int32, state: CodegenState) {
+    private func createRelocationHere(name: String, size: Int32, offset: Int32, state: CodegenState) {
         let idx = Int32(state.bytecode.getCurrentInstructionIndex() - 1)
-        state.linkerData.addRelocation(name, idx, offset, size)
+        state.linkerData.addRelocation(name, idx, size, offset)
     }
 
     private func unableAsRef() {
@@ -74,21 +74,30 @@ public class Codegen {
     }
 
     private func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: SimpleExpr, right: SimpleExpr, state: CodegenState) {
-        compileExprTo(left, state)
-        compileExprTo(right, state)
-        let instruction = match (op) {
-            case Add => Instruction.Add
-            case Sub => Instruction.Sub
-            case Mul => Instruction.Mul
-            case Div => Instruction.Div
-            case Eq => Instruction.Eq
-            case Le => Instruction.Le
-            case Lt => Instruction.Lt
-            case Ge => Instruction.Ge
-            case Gt => Instruction.Gt
-            case _ => todo()
+        func simple(instruction: Instruction) {
+            compileExprTo(left, state)
+            compileExprTo(right, state)
+            state.bytecode.addInstruction(instruction)
         }
-        state.bytecode.addInstruction(instruction)
+
+        let instruction = match (op) {
+            case Add => simple(Instruction.Add)
+            case Sub => simple(Instruction.Sub)
+            case Mul => simple(Instruction.Mul)
+            case Div => simple(Instruction.Div)
+            case Mod => simple(Instruction.Mod)
+            case Eq => simple(Instruction.Eq)
+            case Neq => simple(Instruction.Neq)
+            case Le => simple(Instruction.Le)
+            case Lt => simple(Instruction.Lt)
+            case Ge => simple(Instruction.Ge)
+            case Gt => simple(Instruction.Gt)
+            case BitXor => simple(Instruction.BitXor)
+            case BitAnd => simple(Instruction.BitAnd)
+            case BitOr => simple(Instruction.BitOr)
+            case And => compileIfThenElseTo(left, right, ScConstBool(false), state)
+            case Or => compileIfThenElseTo(left, ScConstBool(true), right, state)
+        }
     }
 
     private func compileUnaryOpTo(op: SimpleUnaryOperator, expr: SimpleExpr, state: CodegenState) {
@@ -132,9 +141,12 @@ public class Codegen {
     }
 
     private func compileBlockTo(block: SimpleBlock, state: CodegenState): Unit {
-        for (decl in block) {
-            compileDeclTo(decl, state)
+        let length = block.size
+        for (i in 0..length-1) {
+            let decl = block[i]
+            compileDeclTo(decl, true, state)
         }
+        block.last.map { x => compileDeclTo(x, false, state) }
     }
 
     private func compileReturnTo(returnExpr: SimpleExpr, state: CodegenState) {
@@ -203,28 +215,30 @@ public class Codegen {
         storePatternTo(pattern, state)
     }
 
-    private func compileRunExprTo(expr: SimpleExpr, state: CodegenState) {
+    private func compileRunExprTo(expr: SimpleExpr, ignoreResult: Bool, state: CodegenState) {
         compileExprTo(expr, state)
-        state.bytecode.addInstruction(Drop)
+        if (ignoreResult) {
+            state.bytecode.addInstruction(Drop)
+        }
     }
 
-    private func compileDeclTo(decl: SimpleDecl, state: CodegenState) {
+    private func compileDeclTo(decl: SimpleDecl, ignoreResult: Bool, state: CodegenState) {
         match (decl) {
             case ScFuncDecl(data) => compileFunDeclTo(data, state)
             case ScVarDecl(pattern, expr) => compileVarDeclTo(pattern, expr, state)
-            case ScRunExpr(expr) => compileRunExprTo(expr, state)
+            case ScRunExpr(expr) => compileRunExprTo(expr, ignoreResult, state)
         }
     }
 
     private func compileProgramTo(program: SimpleProgram, state: CodegenState) {
-       program.map { decl: SimpleDecl => compileDeclTo(decl, state) }
+       program.map { decl: SimpleDecl => compileDeclTo(decl, true, state) }
     }
 
     private func appendBuiltinsTo(state: CodegenState) {
-        // print(x) {
+        // println(x) {
         //   builin_print(x)
         // }
-        createFunctionHere("print", state)
+        createFunctionHere("println", state)
         state.bytecode.addInstruction(CallBuiltin(0))
         state.bytecode.addInstruction(LoadImm(0))
         state.bytecode.addInstruction(Return)
@@ -236,4 +250,4 @@ public class Codegen {
         appendBuiltinsTo(state)
         state
     }
-  }
+}

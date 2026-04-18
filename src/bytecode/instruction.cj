@@ -12,12 +12,18 @@ public enum Instruction <: ToString {
     | Sub
     | Mul
     | Div
+    | Mod
     | Eq
     | Neq
     | Le
     | Ge
     | Lt
     | Gt
+    | BitXor
+    | BitAnd
+    | BitOr
+    | And
+    | Or
     | CallCVU64(UInt64)
     | CallCVStackPtr(UInt64)
     | Exit
@@ -71,87 +77,99 @@ public enum Instruction <: ToString {
             case Sub => addCommand0To(0x3, target)
             case Mul => addCommand0To(0x4, target)
             case Div => addCommand0To(0x5, target)
-            case Eq => addCommand0To(0x6, target)
-            case Neq => addCommand0To(0x7, target)
-            case Le => addCommand0To(0x8, target)
-            case Ge => addCommand0To(0x9, target)
-            case Lt => addCommand0To(0xa, target)
-            case Gt => addCommand0To(0xb, target)
-            case CallCVU64(x) => addCommand64To(0xc, x, target)
-            case CallCVStackPtr(x) => addCommand64To(0xd, x, target)
-            case Exit => addCommand0To(0xe, target)
-            case Dup => addCommand0To(0xf, target)
-            case Drop => addCommand0To(0x10, target)
-            case Jump(x) => addCommand32To(0x11, x, target)
-            case JumpTrue(x) => addCommand32To(0x12, x, target)
-            case JumpFalse(x) => addCommand32To(0x13, x, target)
-            case Return => addCommand0To(0x14, target)
-            case ReadStack(x) => addCommand32To(0x15, x, target)
-            case WriteStack(x) => addCommand32To(0x16, x, target)
-            case LoadLocal(x) => addCommand32To(0x17, x, target)
-            case LoadGlobal(x) => addCommand32To(0x18, x, target)
-            case LoadClosure(x) => addCommand32To(0x19, x, target)
-            case StoreLocal(x) => addCommand32To(0x1a, x, target)
-            case StoreGlobal(x) => addCommand32To(0x1b, x, target)
-            case StoreClosure(x) => addCommand32To(0x1c, x, target)
-            case GetLocalRef(x) => addCommand32To(0x1d, x, target)
-            case GetGlobalRef(x) => addCommand32To(0x1e, x, target)
-            case GetClosureRef(x) => addCommand32To(0x1f, x, target)
-            case AllocateLocals(x) => addCommand32To(0x20, x, target)
-            case Call(x) => addCommand32To(0x21, x, target)
-            case CallObject => addCommand0To(0x22, target)
-            case CallBuiltin(x) => addCommand32To(0x23, x, target)
-            case Swap => addCommand0To(0x24, target)
-            case Neg => addCommand0To(0x25, target)
-            case Not => addCommand0To(0x26, target)
-            case WriteToRef => addCommand0To(0x27, target)
-            case FunctionAddress(x) => addCommand32To(0x28, x, target)
+            case Mod => addCommand0To(0x6, target)
+            case Eq => addCommand0To(0x7, target)
+            case Neq => addCommand0To(0x8, target)
+            case Le => addCommand0To(0x9, target)
+            case Ge => addCommand0To(0xa, target)
+            case Lt => addCommand0To(0xb, target)
+            case Gt => addCommand0To(0xc, target)
+            case BitXor => addCommand0To(0xd, target)
+            case BitAnd => addCommand0To(0xe, target)
+            case BitOr => addCommand0To(0xf, target)
+            case And => addCommand0To(0x10, target)
+            case Or => addCommand0To(0x11, target)
+            case CallCVU64(x) => addCommand64To(0x12, x, target)
+            case CallCVStackPtr(x) => addCommand64To(0x13, x, target)
+            case Exit => addCommand0To(0x14, target)
+            case Dup => addCommand0To(0x15, target)
+            case Drop => addCommand0To(0x16, target)
+            case Jump(x) => addCommand32To(0x17, x, target)
+            case JumpTrue(x) => addCommand32To(0x18, x, target)
+            case JumpFalse(x) => addCommand32To(0x19, x, target)
+            case Return => addCommand0To(0x1a, target)
+            case ReadStack(x) => addCommand32To(0x1b, x, target)
+            case WriteStack(x) => addCommand32To(0x1c, x, target)
+            case LoadLocal(x) => addCommand32To(0x1d, x, target)
+            case LoadGlobal(x) => addCommand32To(0x1e, x, target)
+            case LoadClosure(x) => addCommand32To(0x1f, x, target)
+            case StoreLocal(x) => addCommand32To(0x20, x, target)
+            case StoreGlobal(x) => addCommand32To(0x21, x, target)
+            case StoreClosure(x) => addCommand32To(0x22, x, target)
+            case GetLocalRef(x) => addCommand32To(0x23, x, target)
+            case GetGlobalRef(x) => addCommand32To(0x24, x, target)
+            case GetClosureRef(x) => addCommand32To(0x25, x, target)
+            case AllocateLocals(x) => addCommand32To(0x26, x, target)
+            case Call(x) => addCommand32To(0x27, x, target)
+            case CallObject => addCommand0To(0x28, target)
+            case CallBuiltin(x) => addCommand32To(0x29, x, target)
+            case Swap => addCommand0To(0x2a, target)
+            case Neg => addCommand0To(0x2b, target)
+            case Not => addCommand0To(0x2c, target)
+            case WriteToRef => addCommand0To(0x2d, target)
+            case FunctionAddress(x) => addCommand32To(0x2e, x, target)
         }
     }
 
     public func toString(): String {
-        match (this) {
-            case Nop => return "Nop"
-            case LoadImm(x) => return "LoadImm ${x}"
-            case Add => return "Add"
-            case Sub => return "Sub"
-            case Mul => return "Mul"
-            case Div => return "Div"
-            case Eq => return "Eq"
-            case Neq => return "Neq"
-            case Le => return "Le"
-            case Ge => return "Ge"
-            case Lt => return "Lt"
-            case Gt => return "Gt"
-            case CallCVU64(x) => return "CallCVU64 ${x}"
-            case CallCVStackPtr(x) => return "CallCVStackPtr ${x}"
-            case Exit => return "Exit"
-            case Dup => return "Dup"
-            case Drop => return "Drop"
-            case Jump(x) => return "Jump ${x}"
-            case JumpTrue(x) => return "JumpTrue ${x}"
-            case JumpFalse(x) => return "JumpTrue ${x}"
-            case Return => return "Return"
-            case ReadStack(x) => return "ReadStack ${x}"
-            case WriteStack(x) => return "WriteStack ${x}"
-            case LoadLocal(x) => return "LoadLocal ${x}"
-            case LoadGlobal(x) => return "LoadGlobal ${x}"
-            case LoadClosure(x) => return "LoadClosure ${x}"
-            case StoreLocal(x) => return "StoreLocal ${x}"
-            case StoreGlobal(x) => return "StoreGlobal ${x}"
-            case StoreClosure(x) => return "StoreClosure ${x}"
-            case GetLocalRef(x) => return "GetLocalRef ${x}"
-            case GetGlobalRef(x) => return "GetGlobalRef ${x}"
-            case GetClosureRef(x) => return "GetClosureRef ${x}"
-            case AllocateLocals(x) => return "AllocateLocals ${x}"
-            case Call(x) => return "Call ${x}"
-            case CallObject => return "CallRef"
-            case CallBuiltin(x) => return "CallBuiltin ${x}"
-            case Swap => return "Swap"
-            case Neg => return "Neg"
-            case Not => return "Not"
-            case WriteToRef => return "WriteToRef"
-            case FunctionAddress(x) => return "FunctionAddress ${x}"
+        return match (this) {
+            case Nop => "Nop"
+            case LoadImm(x) => "LoadImm ${x}"
+            case Add => "Add"
+            case Sub => "Sub"
+            case Mul => "Mul"
+            case Div => "Div"
+            case Mod => "Mod"
+            case Eq => "Eq"
+            case Neq => "Neq"
+            case Le => "Le"
+            case Ge => "Ge"
+            case Lt => "Lt"
+            case Gt => "Gt"
+            case BitXor => "BitXor"
+            case BitAnd => "BitAnd"
+            case BitOr => "BitOr"
+            case And => "And"
+            case Or => "Or"
+            case CallCVU64(x) => "CallCVU64 ${x}"
+            case CallCVStackPtr(x) => "CallCVStackPtr ${x}"
+            case Exit => "Exit"
+            case Dup => "Dup"
+            case Drop => "Drop"
+            case Jump(x) => "Jump ${x}"
+            case JumpTrue(x) => "JumpTrue ${x}"
+            case JumpFalse(x) => "JumpTrue ${x}"
+            case Return => "Return"
+            case ReadStack(x) => "ReadStack ${x}"
+            case WriteStack(x) => "WriteStack ${x}"
+            case LoadLocal(x) => "LoadLocal ${x}"
+            case LoadGlobal(x) => "LoadGlobal ${x}"
+            case LoadClosure(x) => "LoadClosure ${x}"
+            case StoreLocal(x) => "StoreLocal ${x}"
+            case StoreGlobal(x) => "StoreGlobal ${x}"
+            case StoreClosure(x) => "StoreClosure ${x}"
+            case GetLocalRef(x) => "GetLocalRef ${x}"
+            case GetGlobalRef(x) => "GetGlobalRef ${x}"
+            case GetClosureRef(x) => "GetClosureRef ${x}"
+            case AllocateLocals(x) => "AllocateLocals ${x}"
+            case Call(x) => "Call ${x}"
+            case CallObject => "CallRef"
+            case CallBuiltin(x) => "CallBuiltin ${x}"
+            case Swap => "Swap"
+            case Neg => "Neg"
+            case Not => "Not"
+            case WriteToRef => "WriteToRef"
+            case FunctionAddress(x) => "FunctionAddress ${x}"
         }
     }
 }

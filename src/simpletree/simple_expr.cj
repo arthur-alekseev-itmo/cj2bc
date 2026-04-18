@@ -4,7 +4,7 @@ import std.collection.ArrayList
 import std.ast.Pattern
 
 public enum SimpleBinaryOperator {
-    | Add | Sub | Mul | Div
+    | Add | Sub | Mul | Div | Mod
     | Eq | Neq | Ge | Le | Gt | Lt
     | And | Or
     | BitAnd | BitOr | BitXor

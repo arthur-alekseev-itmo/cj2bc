@@ -9,6 +9,7 @@ public class SimpleParser {
     public func parse(input: String) {
         let tokens = cangjieLex(input)
         let program = parseProgram(tokens)
+        program.dump()
         return program.decls.map { decl: Decl =>
             translateDecl(decl)
         }
@@ -22,12 +23,15 @@ public class SimpleParser {
             case "-" => SimpleBinaryOperator.Sub
             case "*" => SimpleBinaryOperator.Mul
             case "/" => SimpleBinaryOperator.Div
+            case "%" => SimpleBinaryOperator.Mod
             case "<" => SimpleBinaryOperator.Lt
             case "<=" => SimpleBinaryOperator.Le
             case ">" => SimpleBinaryOperator.Gt
             case ">=" => SimpleBinaryOperator.Ge
             case "!=" => SimpleBinaryOperator.Neq
             case "==" => SimpleBinaryOperator.Eq
+            case "&&" => SimpleBinaryOperator.And
+            case "||" => SimpleBinaryOperator.Or
             case _ => todo()
         }
         ScBinaryOperator(op, left, right)
