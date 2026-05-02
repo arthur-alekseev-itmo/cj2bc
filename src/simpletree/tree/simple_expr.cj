@@ -1,7 +1,6 @@
 package cj2bc.simpletree.tree
 
 import std.collection.ArrayList
-import std.ast.Pattern
 
 public enum SimpleBinaryOperator {
     | Add | Sub | Mul | Div | Mod

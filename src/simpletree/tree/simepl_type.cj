@@ -9,8 +9,8 @@ public enum SimplePrimitiveType {
 }
 
 public class SimpleRefType {
-    let name: String
-    let arguments: ArrayList<SimpleType>
+    public let name: String
+    public let arguments: ArrayList<SimpleType>
 
     public init(name: String, arguments: ArrayList<SimpleType>) {
         this.arguments = arguments
@@ -19,8 +19,8 @@ public class SimpleRefType {
 }
 
 public class SimpleFuncType {
-    let parameters: ArrayList<SimpleType>
-    let result: SimpleType
+    public let parameters: ArrayList<SimpleType>
+    public let result: SimpleType
 
     public init(parameters: ArrayList<SimpleType>, result: SimpleType) {
         this.parameters = parameters
