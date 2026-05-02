@@ -134,7 +134,7 @@ class HierarhyCollect {
         classDecl.innerDecls.map { d: SimpleDecl => connectDecl(d, newScope) }
     }
 
-    private func connectFuncDecl(f: FuncDeclData, scope: Scope) {
+    private func connectFuncDecl(_: FuncDeclData, _: Scope) {
         // Nothing to be done
     }
 
