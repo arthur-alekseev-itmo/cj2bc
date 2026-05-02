@@ -212,26 +212,52 @@ class Inference {
         }
     }
 
+    private func addTypeToPattern(p: SimplePattern, t: Type) {
+        match (p) {
+            case ScVariable(name, annotation, _) => ScVariable(name, annotation, t)
+        }
+    }
+
     private func inferFuncDecl(decl: FuncDeclData, ctx: Ctx) {
         let newCtx = InferContext(ctx)
         let decomposedParams = decl.parameters.map { p => inferParameter(p, ctx) }
         let (paramTypes, typedParams) = unzip(decomposedParams)
         newCtx.addValue(decl.name, TFunction(paramTypes, TNothing)) // For recursion
-        decomposedParams.map { p: (Type, SimplePattern) => addPatternToCtx(p, ctx) }
-        let (bodyTy, iBody) = inferBlock(decl.body, ctx)
-        ctx.addReturnedType(bodyTy)
-        let returnType = ctx.returnedTypes.fold(TNothing, upperbound)
+        decomposedParams.map { p: (Type, SimplePattern) => addPatternToCtx(p, newCtx) }
+        let (bodyTy, iBody) = inferBlock(decl.body, newCtx)
+        newCtx.addReturnedType(bodyTy)
+        let returnType = newCtx.returnedTypes.fold(TNothing, upperbound)
         let iDecl = FuncDeclData(decl.name, typedParams, iBody, decl.modifiers)
         ScFuncDecl(iDecl, TFunction(paramTypes, returnType))
+    }
+
+    private func inferVarDecl(pattern: SimplePattern, expr: SimpleExpr, ctx: Ctx) {
+        let (ty, iExpr) = inferExpr(expr, ctx)
+        addPatternToCtx((ty, pattern), ctx)
+        let iPattern = addTypeToPattern(pattern, ty)
+        ScVarDecl(iPattern, iExpr, ty)
+    }
+
+    private func inferClassDecl(_: ClassDeclData, _: Ctx) {
+        todo()
+    }
+
+    private func inferInterfaceDecl(_: InterfaceDeclData, _: Ctx) {
+        todo()
+    }
+
+    private func inferRunExpr(expr: SimpleExpr, ctx: Ctx) {
+        let (_, iExpr) = inferExpr(expr, ctx)
+        ScRunExpr(iExpr)
     }
 
     private func inferDecl(decl: SimpleDecl, ctx: Ctx): SimpleDecl {
         match (decl) {
             case ScFuncDecl(f, _) => inferFuncDecl(f, ctx)
-            case ScVarDecl(v, b, _) => todo()
-            case ScClassDecl(c) => todo()
-            case ScInterfaceDecl(i) => todo()
-            case ScRunExpr(e) => todo() 
+            case ScVarDecl(v, b, _) => inferVarDecl(v, b, ctx)
+            case ScClassDecl(c) => inferClassDecl(c, ctx)
+            case ScInterfaceDecl(i) => inferInterfaceDecl(i, ctx)
+            case ScRunExpr(e) => inferRunExpr(e, ctx) 
        }
     }
 }
