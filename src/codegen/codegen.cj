@@ -1,16 +1,16 @@
 package cj2bc.codegen
 
-import cj2bc.simpletree.*
+import cj2bc.simpletree.tree.*
 import cj2bc.bytecode.Bytecode
 import cj2bc.bytecode.Instruction
 import cj2bc.utils.todo
 import std.collection.ArrayList
 
 public class Codegen {
-    private var branchIndex = 0;
+    private var branchIndexCounter = 0;
     private func getBranchNextIndex() {
-        branchIndex++
-        branchIndex
+        branchIndexCounter++
+        branchIndexCounter
     }
 
     private func createFunctionHere(name: String, state: CodegenState) {
@@ -190,7 +190,7 @@ public class Codegen {
 
     private func storePatternTo(pattern: SimplePattern, state: CodegenState) {
         match (pattern) {
-            case ScVariable(name) =>
+            case ScVariable(name, _, _) =>
                 let variable = state.locals.addVariable(name)
                 match (variable) {
                     case GlobalVariable(x) => state.bytecode.addInstruction(StoreGlobal(x))
@@ -224,9 +224,9 @@ public class Codegen {
 
     private func compileDeclTo(decl: SimpleDecl, ignoreResult: Bool, state: CodegenState) {
         match (decl) {
-            case ScFuncDecl(data) => compileFunDeclTo(data, state)
-            case ScVarDecl(pattern, expr) => compileVarDeclTo(pattern, expr, state)
-            case ScRunExpr(expr) => compileRunExprTo(expr, ignoreResult, state)
+            case ScFuncDecl(data, _) => compileFunDeclTo(data, state)
+            case ScVarDecl(pattern, expr, _) => compileVarDeclTo(pattern, expr, state)
+            case ScRunExpr(expr, _) => compileRunExprTo(expr, ignoreResult, state)
         }
     }
 

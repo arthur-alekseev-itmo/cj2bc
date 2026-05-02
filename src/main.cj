@@ -3,7 +3,7 @@ package cj2bc
 import std.fs.File
 import std.fs.OpenMode
 import std.io.readString
-import cj2bc.simpletree.SimpleParser
+import cj2bc.simpletree.parser.SimpleParser
 import cj2bc.codegen.Codegen
 import cj2bc.bytecode.BytecodeFile
 import cj2bc.codegen.Linker
@@ -35,7 +35,7 @@ main(args: Array<String>): Int64 {
 
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
-        let simpleProgram = SimpleParser().parse(content)
+        let simpleProgram = SimpleParser.parse(content)
         let state = Codegen().compileProgram(simpleProgram)
         Linker().link(state)
 

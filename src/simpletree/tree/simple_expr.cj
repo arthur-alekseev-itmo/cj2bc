@@ -1,4 +1,4 @@
-package cj2bc.simpletree
+package cj2bc.simpletree.tree
 
 import std.collection.ArrayList
 import std.ast.Pattern
