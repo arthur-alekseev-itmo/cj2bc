@@ -77,7 +77,7 @@ class PpSimpleTree {
         return "TY?"
     }
 
-    private static func patternToString(pattern: SimplePattern, _: String) {
+    private static func patternToString(pattern: SimplePattern) {
         match (pattern) {
             case ScVariable(name, a, t) =>
                 let annotation = a.map(simpleTypeToString).map { x => ": ${x}"}.getOrDefault {""}
@@ -89,15 +89,29 @@ class PpSimpleTree {
     private static func declToString(decl: SimpleDecl, offset: String): String {
         match (decl) {
             case ScVarDecl(v, e, t) => 
-                let pattern = patternToString(v, offset)
+                let pattern = patternToString(v)
                 let expr = exprToString(e, offset)
                 let ty = t.map(typeToString).getOrDefault { "" }
                 "${offset}let ${pattern}[${ty}] = ${expr}"
             case ScFuncDecl(f, t) =>
-                "TODO" 
-            case ScClassDecl(c) => todo()
-            case ScRunExpr(e) => todo()
-            case ScInterfaceDecl(i) => todo()
+                let paramStrings = f.parameters.map(patternToString)
+                let params = String.join(paramStrings.toArray(), delimiter:", ")
+                let body = blockToString(f.body, offset)
+                let ty = t.map(typeToString).getOrDefault { "" }
+                "${offset}func ${f.name}(${params})[${ty}] ${body}"
+            case ScClassDecl(c) => 
+                let body = blockToString(c.innerDecls, offset)
+                let superTypeStrings = c.superTypes.map { c => simpleTypeToString(c) }
+                let superTypes = String.join(superTypeStrings.toArray(), delimiter:" & ")
+                "${offset}class ${c.name} <: ${superTypes} ${body}"
+            case ScRunExpr(e) =>
+                let expr = exprToString(e, offset)
+                "${offset}${expr}"
+            case ScInterfaceDecl(i) =>
+                let body = blockToString(i.innerDecls, offset)
+                let superTypeStrings = i.superTypes.map { c => simpleTypeToString(c) }
+                let superTypes = String.join(superTypeStrings.toArray(), delimiter:" & ")
+                "${offset}interface ${i.name} <: ${superTypes}"
         }
     }
 }
