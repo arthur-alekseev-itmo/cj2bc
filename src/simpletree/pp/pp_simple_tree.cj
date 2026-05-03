@@ -4,7 +4,7 @@ import cj2bc.simpletree.tree.*
 import cj2bc.utils.todo
 import cj2bc.analysis.typing.types.*
 
-class PpSimpleTree {
+public class PpSimpleTree {
     static let LEAP = "   "
 
     public static func programToString(program: SimpleProgram): String {
@@ -13,13 +13,31 @@ class PpSimpleTree {
     }
 
     private static func binopToString(op: SimpleBinaryOperator) {
-        // TODO:
-        "??"
+        match (op) {
+            case Add => "+"
+            case Sub => "-"
+            case Mul => "*"
+            case Div => "/"
+            case Mod => "%"
+            case Lt => "<"
+            case Le => "<="
+            case Gt => ">"
+            case Ge => ">="
+            case Neq => "!="
+            case Eq => "=="
+            case And => "&&"
+            case Or => "||"
+            case BitXor => "^"
+            case BitAnd => "&" 
+            case BitOr => "|"
+        }
     }
 
     private static func unopToString(op: SimpleUnaryOperator) {
-        // TODO:
-        "?"
+        match (op) {
+            case SimpleUnaryOperator.Neg => "-"
+            case SimpleUnaryOperator.Not => "!"
+        }
     }
 
     private static func blockToString(block: SimpleBlock, offset: String) {
@@ -68,9 +86,22 @@ class PpSimpleTree {
         }
     }
 
-    private static func simpleTypeToString(t: SimpleType) {
-        // TODO:
-        return "Ty?"
+    private static func simpleTypeToString(t: SimpleType): String {
+        match (t) {
+            case StPrimitive(StBool) => "StBool"
+            case StPrimitive(StUInt64) => "StInt64"
+            case StPrimitive(StUnit) => "StUnit"
+            case StRefType(r) =>
+                let name = r.name
+                let argStrings = r.arguments.map(simpleTypeToString)
+                let args = String.join(argStrings.toArray(), delimiter:", ")
+                let argsBr = if (args.size > 0) { "<${args}>" } else { "" }
+                "${name}${argsBr}"
+            case StFuncType(p) =>
+                let paramStrings = p.parameters.map(simpleTypeToString)
+                let returnTy = simpleTypeToString(p.result)
+                "(${paramStrings}) -> ${returnTy}"
+        }
     }
 
     private static func typeToString(t: Type) {

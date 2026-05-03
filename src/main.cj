@@ -9,6 +9,9 @@ import cj2bc.bytecode.BytecodeFile
 import cj2bc.codegen.Linker
 import std.argopt.*
 
+import cj2bc.analysis.typing.*
+import cj2bc.simpletree.pp.PpSimpleTree
+
 main(args: Array<String>): Int64 {
     let argSpecs = [
         Full("input", r'i', RequiredValue),
@@ -36,8 +39,14 @@ main(args: Array<String>): Int64 {
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
         let simpleProgram = SimpleParser.parse(content)
+        let hierarhy = HierarhyCollect().collectHierarhy(simpleProgram)
+        let inferredProgram = Inference(hierarhy).infer(simpleProgram)
+        PpSimpleTree.programToString(inferredProgram) |> println
+        
+        
         let state = Codegen().compileProgram(simpleProgram)
         Linker().link(state)
+
 
         if (print) {
             println(state.bytecode.toString())

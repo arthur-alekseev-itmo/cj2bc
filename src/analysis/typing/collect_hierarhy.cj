@@ -6,86 +6,107 @@ import cj2bc.simpletree.tree.*
 import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
 
-class ClassHierarhy {
-    let types: HashMap<String, HierarhicalType>
-    let functions: HashMap<String, FunctionInfo>
+public struct SymbolDescription <: Equatable<SymbolDescription> & Hashable {
+    // TODO: Stuff for overloading
+    let qualifiedName: String
 
-    public init() {
-        this.types = HashMap()
-        this.functions = HashMap()
+    public init(qualified: String) {
+        this.qualifiedName = qualified
     }
 
-    func addType(name: String, ty: HierarhicalType) {
+    public init(scope: SymbolsScope, name: String) {
+        this.qualifiedName = "${scope.qualifiedName}${name}"
+    }
+
+    public operator func ==(other: SymbolDescription) {
+        this.qualifiedName == other.qualifiedName
+    }
+
+    public func hashCode(): Int64 {
+        this.qualifiedName.hashCode()
+    }
+}
+
+
+public class SymbolsScope {
+    let exportedSymbols: HashMap<SymbolDescription, SimpleDecl>
+    let symbols: HashMap<SymbolDescription, SimpleDecl>
+
+    let exportedTypes: HashMap<String, HierarhicalType>
+    let types: HashMap<String, HierarhicalType>
+
+    let parent: ?SymbolsScope 
+    let children: HashMap<String, SymbolsScope>
+    let qualifiedName: String
+
+    public init() {
+        this.symbols = HashMap()
+        this.exportedSymbols = HashMap()
+        this.types = HashMap()
+        this.exportedTypes = HashMap()
+        this.parent = None
+        this.children = HashMap()
+        this.qualifiedName = ""
+    }
+
+    public static func fork(parent: SymbolsScope, name: String): SymbolsScope {
+        let self = SymbolsScope(parent, name)
+        parent.addChild(name, self)
+        self 
+    }
+
+    private init(parent: SymbolsScope, name: String) {
+        this.symbols = HashMap()
+        this.exportedSymbols = HashMap()
+        this.types = HashMap()
+        this.exportedTypes = HashMap()
+        this.parent = parent
+        this.children = HashMap()
+        this.qualifiedName = "${parent.qualifiedName}.${name}"
+   }
+
+    func addChild(name: String, child: SymbolsScope) {
+        children.add(name, child)
+    }
+
+    func addType(name: String, ty: HierarhicalType): Unit {
         types.add(name, ty)
     }
 
-    func addFunction(name: String, f: FunctionInfo) {
-        functions.add(name, f)
-    }
-
-    func findType(name: String) {
-        types[name]
-    }
-}
-
-private enum Scope {
-    | Global(ClassHierarhy)
-    | InType(HierarhicalType, Scope)
-
-    func addType(name: String, ty: HierarhicalType): Unit {
-        match (this) {
-            case InType(_, p) => p.addType(name, ty)
-            case Global(h) => h.addType(name, ty)
-        }
-    }
-
-    private static func functionToMethod(function: FuncDeclData) {
-        MethodInfo(function.name, TUnknown, function.modifiers)
-    }
-
-    private static func functionToFunction(function: FuncDeclData) {
-        FunctionInfo(function.name, TUnknown)
-    }
-
-    func addFunction(f: FuncDeclData): Unit {
-        match (this) {
-            case InType(c, _) => c.addMethod(functionToMethod(f))
-            case Global(h) => h.addFunction(f.name, functionToFunction(f))
-        }
+    func addSymbol(name: String, declaration: SimpleDecl): Unit {
+        symbols.add(SymbolDescription(this, name), declaration)
     }
 
     func findType(name: String): HierarhicalType {
-        match (this) {
-            case InType(_, p) => p.findType(name)
-            case Global(h) => h.findType(name)
-        }
+        exportedTypes[name]
     }
 }
 
-class HierarhyCollect {
-    public func collectHierarhy(program: SimpleProgram): ClassHierarhy {
-        let hierarhy = ClassHierarhy()
-        let scope = Global(hierarhy)
+private type Scope = SymbolsScope
+
+public class HierarhyCollect {
+    public func collectHierarhy(program: SimpleProgram): SymbolsScope {
+        let scope = SymbolsScope()
         collectTypes(program, scope)
         connectTypes(program, scope)
-        hierarhy
+        scope
     }
 
     private func registerClassDecl(c: ClassDeclData, scope: Scope): Unit {
         let ty = ClassType(c.name)
-        let newScope = InType(ty, scope)
+        let newScope = SymbolsScope.fork(scope, ty.name)
         scope.addType(c.name, ty)
         c.innerDecls.map { decl: SimpleDecl => registerDecl(decl, newScope) }
     }
 
     private func registerFuncDecl(f: FuncDeclData, scope: Scope) {
-        scope.addFunction(f)
+        scope.addSymbol(f.name, ScFuncDecl(f, None))
         f.body.map { decl: SimpleDecl => registerDecl(decl, scope) }
     }
 
     private func registerInterfaceDecl(i: InterfaceDeclData, scope: Scope) {
         let ty = InterfaceType(i.name)
-        let newScope = InType(ty, scope)
+        let newScope = SymbolsScope.fork(scope, ty.name)
         scope.addType(i.name, ty)
         i.innerDecls.map { decl: SimpleDecl => registerDecl(decl, newScope) }
     }
@@ -130,7 +151,7 @@ class HierarhyCollect {
             throw Exception("More than one superclass")
         }
         classes.map { i: ClassType => klass.setExtend(i) }
-        let newScope = InType(klass, scope)
+        let newScope = SymbolsScope.fork(scope, klass.name)
         classDecl.innerDecls.map { d: SimpleDecl => connectDecl(d, newScope) }
     }
 
@@ -146,7 +167,7 @@ class HierarhyCollect {
             throw Exception("Interface implements non interface")
         }
         ifaces.map { i: InterfaceType => iface.addImplement(i) }
-        let newScope = InType(iface, scope)
+        let newScope = SymbolsScope.fork(scope, iface.name)
         interfaceDecl.innerDecls.map { d: SimpleDecl => connectDecl(d, newScope) }
     }
 

@@ -146,7 +146,7 @@ public class Codegen {
             let decl = block[i]
             compileDeclTo(decl, true, state)
         }
-        block.last.map { x => compileDeclTo(x, false, state) }
+        block.last.map { x: SimpleDecl => compileDeclTo(x, false, state) }
     }
 
     private func compileReturnTo(returnExpr: SimpleExpr, state: CodegenState) {
@@ -226,7 +226,8 @@ public class Codegen {
         match (decl) {
             case ScFuncDecl(data, _) => compileFunDeclTo(data, state)
             case ScVarDecl(pattern, expr, _) => compileVarDeclTo(pattern, expr, state)
-            case ScRunExpr(expr, _) => compileRunExprTo(expr, ignoreResult, state)
+            case ScRunExpr(expr) => compileRunExprTo(expr, ignoreResult, state)
+            case _ => todo()
         }
     }
 

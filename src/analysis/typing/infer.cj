@@ -42,7 +42,7 @@ private class InferContext {
 
 private type Ctx = InferContext
 
-class Inference {
+public class Inference {
     let hierarhy: ClassHierarhy
 
     public init(hierarhy: ClassHierarhy) {
@@ -51,6 +51,8 @@ class Inference {
 
     public func infer(program: SimpleProgram): SimpleProgram {
         let ctx = InferContext()
+        // TODO: Better builtins
+        ctx.addValue("println", TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit)))
         program.map { d: SimpleDecl => inferDecl(d, ctx) } 
     }
 
@@ -228,7 +230,9 @@ class Inference {
         newCtx.addReturnedType(bodyTy)
         let returnType = newCtx.returnedTypes.fold(TNothing, upperbound)
         let iDecl = FuncDeclData(decl.name, typedParams, iBody, decl.modifiers)
-        ScFuncDecl(iDecl, TFunction(paramTypes, returnType))
+        let ty = TFunction(paramTypes, returnType)
+        ctx.addValue(decl.name, ty)
+        ScFuncDecl(iDecl, ty) 
     }
 
     private func inferVarDecl(pattern: SimplePattern, expr: SimpleExpr, ctx: Ctx) {
