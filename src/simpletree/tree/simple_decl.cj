@@ -4,16 +4,16 @@ import cj2bc.analysis.typing.types.Type
 import std.collection.ArrayList
 import std.ast.Modifier
 
-public type SimpleBlock = ArrayList<SimpleDecl>
+public type TypedBlock = ArrayList<TypedDecl>
 
 public class FuncDeclData {
     public let parameters: ArrayList<SimplePattern>
-    public let body: SimpleBlock
+    public let body: TypedBlock
     public let name: String
     public let resultType: ?Type
     public let modifiers: ArrayList<Modifier>
 
-    public init(name: String, parameters: ArrayList<SimplePattern>, body: SimpleBlock, modifiers: ArrayList<Modifier>) { 
+    public init(name: String, parameters: ArrayList<SimplePattern>, body: TypedBlock, modifiers: ArrayList<Modifier>) { 
         this.parameters = parameters
         this.body = body
         this.name = name
@@ -23,11 +23,11 @@ public class FuncDeclData {
 }
 
 open public class InterfaceDeclData {
-    public let innerDecls: ArrayList<SimpleDecl>
+    public let innerDecls: ArrayList<TypedDecl>
     public let name: String
     public let superTypes: ArrayList<SimpleType>
 
-    public init(name: String, superTypes: ArrayList<SimpleType>, innerDecls: ArrayList<SimpleDecl>) {
+    public init(name: String, superTypes: ArrayList<SimpleType>, innerDecls: ArrayList<TypedDecl>) {
         this.name = name
         this.innerDecls = innerDecls
         this.superTypes = superTypes
@@ -35,18 +35,28 @@ open public class InterfaceDeclData {
 }
 
 public class ClassDeclData <: InterfaceDeclData {
-    public init(name: String, superTypes: ArrayList<SimpleType>, innerDecls: ArrayList<SimpleDecl>) {
+    public init(name: String, superTypes: ArrayList<SimpleType>, innerDecls: ArrayList<TypedDecl>) {
         super(name, superTypes, innerDecls)
     }
 }
 
-public type SimpleProgram = ArrayList<SimpleDecl>
+public type SimpleProgram = ArrayList<TypedDecl>
 
 public enum SimpleDecl {
-    | ScFuncDecl(FuncDeclData, ?Type)
-    | ScEmptyVarDecl(SimplePattern, ?Type)
-    | ScVarDecl(SimplePattern, SimpleExpr, ?Type)
-    | ScRunExpr(SimpleExpr)
+    | ScFuncDecl(FuncDeclData)
+    | ScEmptyVarDecl(SimplePattern)
+    | ScVarDecl(SimplePattern, TypedExpr)
+    | ScRunExpr(TypedExpr)
     | ScClassDecl(ClassDeclData)
     | ScInterfaceDecl(InterfaceDeclData)
+}
+
+public class TypedDecl {
+    public let decl: SimpleDecl
+    public var ty: Type
+
+    public init(decl: SimpleDecl, ty: Type) {
+        this.decl = decl
+        this.ty = ty
+    }
 }

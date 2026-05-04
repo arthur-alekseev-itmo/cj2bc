@@ -40,14 +40,18 @@ public class PpSimpleTree {
         }
     }
 
-    private static func blockToString(block: SimpleBlock, offset: String) {
+    private static func blockToString(block: TypedBlock, offset: String) {
         let decls = block.map { d => declToString(d, offset + LEAP) }
         let strings = String.join(decls.toArray(), delimiter:"\n")
-        "{\n${strings}}\n"
+        "{\n${strings}\n}\n"
     }
 
-    private static func exprToString(expr: SimpleExpr, offset: String): String {
-        match (expr) {
+    public static func exprToString(expr: TypedExpr): String {
+        exprToString(expr, "")
+    }
+
+    private static func exprToString(expr: TypedExpr, offset: String): String {
+        match (expr.expr) {
             case ScConstUnit => "()"
             case ScConstInt64(i) => i.toString()
             case ScConstBool(b) => b.toString()
@@ -105,30 +109,30 @@ public class PpSimpleTree {
     }
 
     private static func typeToString(t: Type) {
-        return "TY?"
+        return PPType.typeToString(t)
     }
 
     private static func patternToString(pattern: SimplePattern) {
         match (pattern) {
-            case ScVariable(name, a, t) =>
+            case ScVariable(name, a) =>
                 let annotation = a.map(simpleTypeToString).map { x => ": ${x}"}.getOrDefault {""}
-                let typ = t.map(typeToString).map { x => "[${x}] "}.getOrDefault {""}
-                "${typ}${name}${annotation}"
+                "${name}${annotation}"
         }
     }
 
-    private static func declToString(decl: SimpleDecl, offset: String): String {
-        match (decl) {
-            case ScVarDecl(v, e, t) => 
+    private static func declToString(decl: TypedDecl, offset: String): String {
+        match (decl.decl) {
+            case ScEmptyVarDecl(_) => todo()
+            case ScVarDecl(v, e) => 
                 let pattern = patternToString(v)
                 let expr = exprToString(e, offset)
-                let ty = t.map(typeToString).getOrDefault { "" }
+                let ty = decl.ty |> typeToString
                 "${offset}let ${pattern}[${ty}] = ${expr}"
-            case ScFuncDecl(f, t) =>
+            case ScFuncDecl(f) =>
                 let paramStrings = f.parameters.map(patternToString)
                 let params = String.join(paramStrings.toArray(), delimiter:", ")
                 let body = blockToString(f.body, offset)
-                let ty = t.map(typeToString).getOrDefault { "" }
+                let ty = decl.ty |> typeToString 
                 "${offset}func ${f.name}(${params})[${ty}] ${body}"
             case ScClassDecl(c) => 
                 let body = blockToString(c.innerDecls, offset)

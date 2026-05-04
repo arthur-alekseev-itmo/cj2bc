@@ -27,7 +27,7 @@ public struct SymbolDescription <: Equatable<SymbolDescription> & Hashable {
 }
 
 public class SymbolsScope {
-    let symbols: HashMap<SymbolDescription, SimpleDecl>
+    let symbols: HashMap<SymbolDescription, TypedDecl>
     let types: HashMap<String, HierarhicalType>
 
     let parent: ?SymbolsScope 
@@ -66,20 +66,21 @@ public class SymbolsScope {
         }
     }
 
-    public func addChild(name: String, child: SymbolsScope) {
+    public func addChild(name: String, child: SymbolsScope): Unit {
         children.add(name, child)
     }
 
     public func addType(name: String, ty: HierarhicalType): Unit {
         // Anything is assumed as public at first, so added in root too
         types.add(name, ty)
-        getRoot().addType(name, ty)
+        getRoot().types.add(name, ty)
     }
 
-    public func addSymbol(name: String, declaration: SimpleDecl): Unit {
+    public func addSymbol(name: String, declaration: TypedDecl): Unit {
         // Symbols require scope
-        symbols.add(SymbolDescription(this, name), declaration)
-        getRoot().addSymbol(name, declaration)
+        let description = SymbolDescription(this, name)
+        symbols.add(description, declaration)
+        getRoot().symbols.add(description, declaration)
     }
 
     public func findType(name: String): HierarhicalType {
@@ -90,12 +91,12 @@ public class SymbolsScope {
         }
     }
 
-    public func findSymbol(name: String): SimpleDecl {
+    public func findSymbol(name: String): TypedDecl {
         let description = SymbolDescription(this, name)
         findSymbol(description)
     }
 
-    public func findSymbol(description: SymbolDescription): SimpleDecl {
+    public func findSymbol(description: SymbolDescription): TypedDecl {
         match ((symbols.get(description), parent)) {
             case (None, Some(p)) => p.findSymbol(name)
             case (Some(x), _) => x

@@ -5,6 +5,7 @@ import cj2bc.bytecode.Bytecode
 import cj2bc.bytecode.Instruction
 import cj2bc.utils.todo
 import std.collection.ArrayList
+import cj2bc.analysis.typing.types.*
 
 public class Codegen {
     private var branchIndexCounter = 0;
@@ -50,7 +51,7 @@ public class Codegen {
         state.bytecode.addInstruction(LoadImm(UInt64(value)))
     }
 
-    private func compileIfThenElseTo(cond: SimpleExpr, thenBr: SimpleExpr, elseBr: ?SimpleExpr, state: CodegenState): Unit {
+    private func compileIfThenElseTo(cond: TypedExpr, thenBr: TypedExpr, elseBr: ?TypedExpr, state: CodegenState): Unit {
         let branchIndex = getBranchNextIndex()
         compileExprTo(cond, state)
         state.bytecode.addInstruction(Instruction.Not)
@@ -73,7 +74,7 @@ public class Codegen {
         createLabelHere("$BRANCH_END_${branchIndex}", state)
     }
 
-    private func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: SimpleExpr, right: SimpleExpr, state: CodegenState) {
+    private func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
         func simple(instruction: Instruction) {
             compileExprTo(left, state)
             compileExprTo(right, state)
@@ -95,12 +96,12 @@ public class Codegen {
             case BitXor => simple(Instruction.BitXor)
             case BitAnd => simple(Instruction.BitAnd)
             case BitOr => simple(Instruction.BitOr)
-            case And => compileIfThenElseTo(left, right, ScConstBool(false), state)
-            case Or => compileIfThenElseTo(left, ScConstBool(true), right, state)
+            case And => compileIfThenElseTo(left, right, TypedExpr(ScConstBool(false), TBasic(TBool)), state)
+            case Or => compileIfThenElseTo(left, TypedExpr(ScConstBool(true), TBasic(TBool)), right, state)
         }
     }
 
-    private func compileUnaryOpTo(op: SimpleUnaryOperator, expr: SimpleExpr, state: CodegenState) {
+    private func compileUnaryOpTo(op: SimpleUnaryOperator, expr: TypedExpr, state: CodegenState) {
         compileExprTo(expr, state)
         let instruction = match (op) {
             case Neg => Instruction.Neg
@@ -109,8 +110,8 @@ public class Codegen {
         state.bytecode.addInstruction(instruction)
     }
 
-    private func compileCallTo(callee: SimpleExpr, arguments: ArrayList<SimpleExpr>, state: CodegenState) {
-        arguments.map { argument: SimpleExpr => compileExprTo(argument, state) }
+    private func compileCallTo(callee: TypedExpr, arguments: ArrayList<TypedExpr>, state: CodegenState) {
+        arguments.map { argument: TypedExpr => compileExprTo(argument, state) }
         compileExprTo(callee, state)
         state.bytecode.addInstruction(Instruction.CallObject)
     }
@@ -124,8 +125,8 @@ public class Codegen {
         }
     }
 
-    private func compileExprAsRefTo(expr: SimpleExpr, state: CodegenState) {
-        match (expr) {
+    private func compileExprAsRefTo(expr: TypedExpr, state: CodegenState) {
+        match (expr.expr) {
             case ScConstUnit => unableAsRef()
             case ScConstInt64(x) => unableAsRef()
             case ScConstBool(b) => unableAsRef()
@@ -140,16 +141,16 @@ public class Codegen {
         }
     }
 
-    private func compileBlockTo(block: SimpleBlock, state: CodegenState): Unit {
+    private func compileBlockTo(block: TypedBlock, state: CodegenState): Unit {
         let length = block.size
         for (i in 0..length-1) {
             let decl = block[i]
             compileDeclTo(decl, true, state)
         }
-        block.last.map { x: SimpleDecl => compileDeclTo(x, false, state) }
+        block.last.map { x: TypedDecl => compileDeclTo(x, false, state) }
     }
 
-    private func compileReturnTo(returnExpr: SimpleExpr, state: CodegenState) {
+    private func compileReturnTo(returnExpr: TypedExpr, state: CodegenState) {
         compileExprTo(returnExpr, state)
         state.bytecode.addInstruction(Return)
     }
@@ -166,14 +167,14 @@ public class Codegen {
         }
     }
 
-    private func compileAssignTo(target: SimpleExpr, expr: SimpleExpr, state: CodegenState) {
+    private func compileAssignTo(target: TypedExpr, expr: TypedExpr, state: CodegenState) {
         compileExprAsRefTo(target, state)
         compileExprTo(expr, state)
         state.bytecode.addInstruction(WriteToRef)
     }
 
-    private func compileExprTo(expr: SimpleExpr, state: CodegenState): Unit {
-        match (expr) {
+    private func compileExprTo(expr: TypedExpr, state: CodegenState): Unit {
+        match (expr.expr) {
             case ScConstUnit => compileLoadUnitTo(state)
             case ScConstInt64(x) => compileLoadConstInt64To(x, state)
             case ScConstBool(b) => compileLoadBoolTo(b, state)
@@ -190,7 +191,7 @@ public class Codegen {
 
     private func storePatternTo(pattern: SimplePattern, state: CodegenState) {
         match (pattern) {
-            case ScVariable(name, _, _) =>
+            case ScVariable(name, _) =>
                 let variable = state.locals.addVariable(name)
                 match (variable) {
                     case GlobalVariable(x) => state.bytecode.addInstruction(StoreGlobal(x))
@@ -210,29 +211,29 @@ public class Codegen {
         state.popLocalsFrame()
     }
 
-    private func compileVarDeclTo(pattern: SimplePattern, expr: SimpleExpr, state: CodegenState) {
+    private func compileVarDeclTo(pattern: SimplePattern, expr: TypedExpr, state: CodegenState) {
         compileExprTo(expr, state)
         storePatternTo(pattern, state)
     }
 
-    private func compileRunExprTo(expr: SimpleExpr, ignoreResult: Bool, state: CodegenState) {
+    private func compileRunExprTo(expr: TypedExpr, ignoreResult: Bool, state: CodegenState) {
         compileExprTo(expr, state)
         if (ignoreResult) {
             state.bytecode.addInstruction(Drop)
         }
     }
 
-    private func compileDeclTo(decl: SimpleDecl, ignoreResult: Bool, state: CodegenState) {
-        match (decl) {
-            case ScFuncDecl(data, _) => compileFunDeclTo(data, state)
-            case ScVarDecl(pattern, expr, _) => compileVarDeclTo(pattern, expr, state)
+    private func compileDeclTo(decl: TypedDecl, ignoreResult: Bool, state: CodegenState) {
+        match (decl.decl) {
+            case ScFuncDecl(data) => compileFunDeclTo(data, state)
+            case ScVarDecl(pattern, expr) => compileVarDeclTo(pattern, expr, state)
             case ScRunExpr(expr) => compileRunExprTo(expr, ignoreResult, state)
             case _ => todo()
         }
     }
 
     private func compileProgramTo(program: SimpleProgram, state: CodegenState) {
-       program.map { decl: SimpleDecl => compileDeclTo(decl, true, state) }
+       program.map { decl: TypedDecl => compileDeclTo(decl, true, state) }
     }
 
     private func appendBuiltinsTo(state: CodegenState) {

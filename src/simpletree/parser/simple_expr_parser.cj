@@ -1,5 +1,6 @@
 package cj2bc.simpletree.parser
 
+import cj2bc.utils.nextCnt
 import cj2bc.simpletree.tree.*
 import std.ast.*
 import cj2bc.utils.todo
@@ -7,7 +8,12 @@ import std.collection.ArrayList
 import std.convert.Parsable
 
 public class SimpleExprParser {
-    private static func translateBinaryExpr(binary: BinaryExpr): SimpleExpr {
+
+    private static func returnTyped(expr: SimpleExpr) {
+        TypedExpr(expr, TUnknown(nextCnt()))
+    }
+
+    private static func translateBinaryExpr(binary: BinaryExpr): TypedExpr {
         let left = translateExpr(binary.leftExpr)
         let right = translateExpr(binary.rightExpr)
         let op = match (binary.op.value) {
@@ -26,87 +32,88 @@ public class SimpleExprParser {
             case "||" => SimpleBinaryOperator.Or
             case _ => todo()
         }
-        ScBinaryOperator(op, left, right)
+        returnTyped(ScBinaryOperator(op, left, right))
     }
 
-    private static func translateUnary(unary: UnaryExpr): SimpleExpr {
+    private static func translateUnary(unary: UnaryExpr): TypedExpr {
         let expr = translateExpr(unary.expr)
         let op = match (unary.op.value) {
             case "!" => SimpleUnaryOperator.Not
             case "-" => SimpleUnaryOperator.Neg
             case _ => todo()
         }
-        ScUnaryOperator(op, expr)
+        returnTyped(ScUnaryOperator(op, expr))
     }
 
-    private static func translateLiteral(literal: LitConstExpr): SimpleExpr {
+    private static func translateLiteral(literal: LitConstExpr): TypedExpr {
         if (literal.literal.kind == TokenKind.INTEGER_LITERAL) {
             let value = Int64.parse(literal.literal.value)
-            return ScConstInt64(value)
+            return returnTyped(ScConstInt64(value))
         }
 
         if (literal.literal.kind == TokenKind.BOOL_LITERAL) {
             let value = Bool.parse(literal.literal.value)
-            return ScConstBool(value)
+            return returnTyped(ScConstBool(value))
         }
 
         todo()
     }
 
-    private static func translateReturn(returnExpr: ReturnExpr): SimpleExpr {
-        ScReturn(translateExpr(returnExpr.expr))
+    private static func translateReturn(returnExpr: ReturnExpr): TypedExpr {
+        returnTyped(ScReturn(translateExpr(returnExpr.expr)))
     }
 
-    private static func translateAssign(assignExpr: AssignExpr): SimpleExpr {
+    private static func translateAssign(assignExpr: AssignExpr): TypedExpr {
         let left = translateExpr(assignExpr.leftExpr)
         let right = translateExpr(assignExpr.rightExpr)
-        ScAssign(left, right)
+        returnTyped(ScAssign(left, right))
     }
 
-    private static func translateCall(callExpr: CallExpr): SimpleExpr {
+    private static func translateCall(callExpr: CallExpr): TypedExpr {
         let callee = translateExpr(callExpr.callFunc)
         let args = callExpr.arguments.map { argument: Argument =>
             translateExpr(argument.expr)
         }
-        ScCall(callee, args)
+        returnTyped(ScCall(callee, args))
     }
 
-    private static func translateIfExpr(ifExpr: IfExpr): SimpleExpr {
+    private static func translateIfExpr(ifExpr: IfExpr): TypedExpr {
         let condition = translateExpr(ifExpr.condition)
         let thenBranch = SimpleParser.translateBlock(ifExpr.ifBlock)
         // TODO: Шедевр я не могу
         let elseBranch = try {
             Some(translateExpr(ifExpr.elseExpr))
         } catch (_) {
-            None<SimpleExpr>
+            None<TypedExpr>
         }
-        ScIfThenElse(condition, ScBlockExpr(thenBranch), elseBranch)
+        let thenBranchBlock = returnTyped(ScBlockExpr(thenBranch))
+        returnTyped(ScIfThenElse(condition, thenBranchBlock, elseBranch))
     }
 
-    private static func translateWhile(_: WhileExpr): SimpleExpr {
+    private static func translateWhile(_: WhileExpr): TypedExpr {
         todo()
     }
 
-    private static func translateDoWhileExpr(_: DoWhileExpr): SimpleExpr {
+    private static func translateDoWhileExpr(_: DoWhileExpr): TypedExpr {
         todo()
     }
 
-    private static func translateForInExpr(_: ForInExpr): SimpleExpr {
+    private static func translateForInExpr(_: ForInExpr): TypedExpr {
         todo()
     }
 
-    private static func translateRefExpr(refExpr: RefExpr): SimpleExpr {
+    private static func translateRefExpr(refExpr: RefExpr): TypedExpr {
         if (refExpr.identifier.kind != TokenKind.IDENTIFIER) {
             throw Exception("Cannot work with ref values like this")
         }
 
         let id = refExpr.identifier.value
-        ScVarRef(id)
+        returnTyped(ScVarRef(id))
     }
 
-    public static func translateExpr(expr: Expr): SimpleExpr {
+    public static func translateExpr(expr: Expr): TypedExpr {
         match (expr) {
-            case block: Block => ScBlockExpr(SimpleParser.translateBlock(block))
+            case block: Block => returnTyped(ScBlockExpr(SimpleParser.translateBlock(block)))
             case binary: BinaryExpr => translateBinaryExpr(binary)
             case unary: UnaryExpr => translateUnary(unary)
             case isExpr: IsExpr => todo()

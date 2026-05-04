@@ -1,21 +1,26 @@
 package cj2bc.simpletree.parser
 
+import cj2bc.analysis.typing.types.*
 import cj2bc.simpletree.tree.*
 import std.ast.*
 import cj2bc.utils.todo
+import cj2bc.utils.nextCnt
 import std.collection.ArrayList
 
 public class SimpleDeclParser {
     
-    private static func translateFuncDecl(funcDecl: FuncDecl): SimpleDecl {
+    private static let CLASS_TYPE: Type = TClass(ClassType("Class"))
+
+    private static func translateFuncDecl(funcDecl: FuncDecl): TypedDecl {
         let parameters = funcDecl.funcParams.map { param: FuncParam =>
             // TODO: More stuff, for instance types, annotations etc
-            ScVariable(param.identifier.value, SimpleTypeParser.translateType(param.paramType), None)
+            ScVariable(param.identifier.value, SimpleTypeParser.translateType(param.paramType))
         }
         let body = SimpleParser.translateBlock(funcDecl.block)
         let funcName = funcDecl.identifier.value
         let modifiers = funcDecl.modifiers
-        ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers), None)
+        let simpleDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers))
+        TypedDecl(simpleDecl, TUnknown(nextCnt()))
     }
 
     private static func translateMainDecl(mainDecl: MainDecl) {
@@ -30,7 +35,7 @@ public class SimpleDeclParser {
         match (pattern) {
             case constPattern: ConstPattern => todo()
             case wildcardPattern: WildcardPattern => todo()
-            case varPattern: VarPattern => ScVariable(varPattern.identifier.value, None, None)
+            case varPattern: VarPattern => ScVariable(varPattern.identifier.value, None)
             case varOrEnumPattern: VarOrEnumPattern => todo()
             case exceptTypePattern: ExceptTypePattern => todo()
             case commandTypePattern: CommandTypePattern => todo()
@@ -41,29 +46,32 @@ public class SimpleDeclParser {
         }
     }
 
-    private static func translateVarDecl(varDecl: VarDecl): SimpleDecl {
+    private static func translateVarDecl(varDecl: VarDecl): TypedDecl {
         // TODO: I dunno when can I use pattern, and when I can use identifier
         // let pattern = translatePattern(varDecl.pattern)
-        let pattern = ScVariable(varDecl.identifier.value, None, None)
+        let pattern = ScVariable(varDecl.identifier.value, None)
         let expr = SimpleExprParser.translateExpr(varDecl.expr)
-        ScVarDecl(pattern, expr, None)
+        let decl = ScVarDecl(pattern, expr)
+        TypedDecl(decl, TUnknown(nextCnt()))
     }
 
     private static func translateClassDecl(classDecl: ClassDecl) {
         let name = classDecl.identifier.value
         let superTypes = classDecl.superTypes.map(SimpleTypeParser.translateType)
         let innerDecls = classDecl.body.decls.map(translateDecl)
-        ScClassDecl(ClassDeclData(name, superTypes, innerDecls))
+        let decl = ScClassDecl(ClassDeclData(name, superTypes, innerDecls))
+        TypedDecl(decl, CLASS_TYPE)
     }
     
     private static func translateInterfaceDecl(interfaceDecl: InterfaceDecl) {
         let name = interfaceDecl.identifier.value
         let superTypes = interfaceDecl.superTypes.map(SimpleTypeParser.translateType)
         let innerDecls = interfaceDecl.body.decls.map(translateDecl)
-        ScInterfaceDecl(InterfaceDeclData(name, superTypes, innerDecls))
+        let decl = ScInterfaceDecl(InterfaceDeclData(name, superTypes, innerDecls))
+        TypedDecl(decl, CLASS_TYPE)
     }
 
-    public static func translateDecl(decl: Decl): SimpleDecl {
+    public static func translateDecl(decl: Decl): TypedDecl {
         match (decl) {
             case classDecl: ClassDecl => translateClassDecl(classDecl)
             case structDecl: StructDecl => todo()

@@ -3,6 +3,7 @@ package cj2bc.analysis.typing
 import std.collection.ArrayList
 import std.collection.HashMap
 import cj2bc.simpletree.tree.*
+import cj2bc.utils.nextCnt
 import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
 import cj2bc.analysis.SymbolsScope
@@ -10,10 +11,8 @@ import cj2bc.analysis.SymbolsScope
 private type Scope = SymbolsScope
 
 public class Collect {
-    var fwid = 0
     private func nextFreeVar() {
-        fwid++
-        TUnknown(fwid)
+        TUnknown(nextCnt())
     }
 
     public func collectHierarhy(program: SimpleProgram): SymbolsScope {
@@ -27,7 +26,7 @@ public class Collect {
         let ty = ClassType(c.name)
         let newScope = scope.enterSymbol(ty.name)
         scope.addType(c.name, ty)
-        c.innerDecls.map { decl: SimpleDecl => registerDecl(decl, newScope) }
+        c.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
     }
 
     private func createFnType(f: FuncDeclData, scope: Scope) {
@@ -38,43 +37,44 @@ public class Collect {
 
     private func addParameterWithType(p: SimplePattern, scope: Scope) {
         match (p) {
-            case ScVariable(name, Some(annotation), _) =>
+            case ScVariable(name, Some(annotation)) =>
                 let paramType = resolveSimpleType(annotation, scope)
-                let fictionalDecl = ScEmptyVarDecl(p, paramType)
+                let fictionalDecl = TypedDecl(ScEmptyVarDecl(p), paramType)
                 scope.addSymbol(name, fictionalDecl)
             case _ => throw Exception("Bad function parameter")
         }
     }
 
-    private func registerFuncDecl(f: FuncDeclData, scope: Scope) {
-        scope.addSymbol(f.name, ScFuncDecl(f, createFnType(f, scope)))
+    private func registerFuncDecl(e: TypedDecl, f: FuncDeclData, scope: Scope) {
+        e.ty = createFnType(f, scope)
+        scope.addSymbol(f.name, e)
         f.parameters.map { p: SimplePattern => addParameterWithType(p, scope) }
         let innerScope = scope.enterSymbol(f.name)
-        f.body.map { decl: SimpleDecl => registerDecl(decl, innerScope) }
+        f.body.map { decl: TypedDecl => registerDecl(decl, innerScope) }
     }
 
     private func registerInterfaceDecl(i: InterfaceDeclData, scope: Scope) {
         let ty = InterfaceType(i.name)
         let newScope = scope.enterSymbol(ty.name)
         scope.addType(i.name, ty)
-        i.innerDecls.map { decl: SimpleDecl => registerDecl(decl, newScope) }
+        i.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
     }
 
-    private func registerVarDecl(v: SimplePattern, b: SimpleExpr, scope: Scope) {
+    private func registerVarDecl(e: TypedDecl, v: SimplePattern, b: TypedExpr, scope: Scope) {
         let name = match (v) {
-            case ScVariable(name, _, _) => name
+            case ScVariable(name, _) => name
             case _ => throw Exception("Can only work with variables here")
         }
         registerExpr(b, scope)
-        scope.addSymbol(name, ScVarDecl(v, b, nextFreeVar()))
+        scope.addSymbol(name, e) 
     }
 
-    private func registerRunExpr(r: SimpleExpr, scope: Scope) {
+    private func registerRunExpr(r: TypedExpr, scope: Scope) {
         registerExpr(r, scope)
     }
 
-    private func registerExpr(expr: SimpleExpr, scope: Scope): Unit {
-        match (expr) {
+    private func registerExpr(expr: TypedExpr, scope: Scope): Unit {
+        match (expr.expr) {
             case ScConstUnit => ()
             case ScConstInt64(_)  => ()
             case ScConstBool(_)  => ()
@@ -89,10 +89,10 @@ public class Collect {
                 registerExpr(expr, scope)
             case ScCall(callee, args) =>
                 registerExpr(callee, scope)
-                args.map { a: SimpleExpr => registerExpr(a, scope) }
+                args.map { a: TypedExpr => registerExpr(a, scope) }
             case ScBlockExpr(block) =>
                 // TODO: New scope?
-                block.map { decl: SimpleDecl => registerDecl(decl, scope) }
+                block.map { decl: TypedDecl => registerDecl(decl, scope) }
             case ScReturn(expr) =>
                 registerExpr(expr, scope)
             case ScAssign(target, value) =>
@@ -102,11 +102,11 @@ public class Collect {
         }
     }
 
-    private func registerDecl(decl: SimpleDecl, scope: Scope): Unit {
-        match (decl) {
-            case ScFuncDecl(f, _) => registerFuncDecl(f, scope)
-            case ScEmptyVarDecl(v, _) => todo()
-            case ScVarDecl(v, b, _) => registerVarDecl(v, b, scope)
+    private func registerDecl(decl: TypedDecl, scope: Scope): Unit {
+        match (decl.decl) {
+            case ScFuncDecl(f) => registerFuncDecl(decl, f, scope)
+            case ScEmptyVarDecl(v) => todo()
+            case ScVarDecl(v, b) => registerVarDecl(decl, v, b, scope)
             case ScClassDecl(c) => registerClassDecl(c, scope)
             case ScInterfaceDecl(i) => registerInterfaceDecl(i, scope)
             case ScRunExpr(r) => registerRunExpr(r, scope)
@@ -114,7 +114,7 @@ public class Collect {
     }
 
     private func collectTypes(program: SimpleProgram, scope: Scope) {
-        program.map { decl: SimpleDecl => registerDecl(decl, scope) } 
+        program.map { decl: TypedDecl => registerDecl(decl, scope) } 
     }
 
     private func resolveSimpleTypeToHierarhical(sty: SimpleType, scope: Scope): HierarhicalType {
@@ -137,7 +137,7 @@ public class Collect {
         }
         classes.map { i: ClassType => klass.setExtend(i) }
         let newScope = scope.enterSymbol(klass.name)
-        classDecl.innerDecls.map { d: SimpleDecl => connectDecl(d, newScope) }
+        classDecl.innerDecls.map { d: TypedDecl => connectDecl(d, newScope) }
     }
 
     private func connectFuncDecl(_: FuncDeclData, _: Scope) {
@@ -153,14 +153,14 @@ public class Collect {
         }
         ifaces.map { i: InterfaceType => iface.addImplement(i) }
         let newScope = scope.enterSymbol(iface.name)
-        interfaceDecl.innerDecls.map { d: SimpleDecl => connectDecl(d, newScope) }
+        interfaceDecl.innerDecls.map { d: TypedDecl => connectDecl(d, newScope) }
     }
 
-    private func connectDecl(decl: SimpleDecl, scope: Scope): Unit {
-        match (decl) {
-            case ScFuncDecl(f, _) => connectFuncDecl(f, scope)
-            case ScEmptyVarDecl(v, _) => ()
-            case ScVarDecl(v, b, _) => ()
+    private func connectDecl(decl: TypedDecl, scope: Scope): Unit {
+        match (decl.decl) {
+            case ScFuncDecl(f) => connectFuncDecl(f, scope)
+            case ScEmptyVarDecl(v) => ()
+            case ScVarDecl(v, b) => ()
             case ScClassDecl(c) => connectClassDecl(c, scope)
             case ScInterfaceDecl(i) => connectInterfaceDecl(i, scope)
             case ScRunExpr(_) => ()
@@ -168,7 +168,7 @@ public class Collect {
     }
 
     private func connectTypes(program: SimpleProgram, scope: Scope) {
-        program.map { decl: SimpleDecl => connectDecl(decl, scope) }
+        program.map { decl: TypedDecl => connectDecl(decl, scope) }
     }
     
     private func resolveHierarhicalType(ty: HierarhicalType): Type {
@@ -191,7 +191,7 @@ public class Collect {
 
     private func resolveParameterType(p: SimplePattern, scope: Scope): Type {
         match (p) {
-            case ScVariable(_, Some(anno), _) => resolveSimpleType(anno, scope)
+            case ScVariable(_, Some(anno)) => resolveSimpleType(anno, scope)
             case _ => throw Exception("Function parameter was noticed without an type annotation. This is a crime")
         }
     }

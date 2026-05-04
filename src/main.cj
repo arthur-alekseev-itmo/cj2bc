@@ -41,7 +41,7 @@ main(args: Array<String>): Int64 {
         let simpleProgram = SimpleParser.parse(content)
         let scope = Collect().collectHierarhy(simpleProgram)
         let inferredProgram = Inference().infer(simpleProgram, scope)
-        PpSimpleTree.programToString(inferredProgram) |> println
+        PpSimpleTree.programToString(simpleProgram) |> println
         
         
         let state = Codegen().compileProgram(simpleProgram)
