@@ -39,7 +39,7 @@ main(args: Array<String>): Int64 {
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
         let simpleProgram = SimpleParser.parse(content)
-        let scope = HierarhyCollect().collectHierarhy(simpleProgram)
+        let scope = Collect().collectHierarhy(simpleProgram)
         let inferredProgram = Inference().infer(simpleProgram, scope)
         PpSimpleTree.programToString(inferredProgram) |> println
         

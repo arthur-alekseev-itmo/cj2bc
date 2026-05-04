@@ -9,7 +9,7 @@ import cj2bc.analysis.SymbolsScope
 
 private type Scope = SymbolsScope
 
-public class HierarhyCollect {
+public class Collect {
     var fwid = 0
     private func nextFreeVar() {
         fwid++
@@ -36,8 +36,19 @@ public class HierarhyCollect {
         TFunction(parameters, returnType)
     }
 
+    private func addParameterWithType(p: SimplePattern, scope: Scope) {
+        match (p) {
+            case ScVariable(name, Some(annotation), _) =>
+                let paramType = resolveSimpleType(annotation, scope)
+                let fictionalDecl = ScEmptyVarDecl(p, paramType)
+                scope.addSymbol(name, fictionalDecl)
+            case _ => throw Exception("Bad function parameter")
+        }
+    }
+
     private func registerFuncDecl(f: FuncDeclData, scope: Scope) {
         scope.addSymbol(f.name, ScFuncDecl(f, createFnType(f, scope)))
+        f.parameters.map { p: SimplePattern => addParameterWithType(p, scope) }
         let innerScope = scope.enterSymbol(f.name)
         f.body.map { decl: SimpleDecl => registerDecl(decl, innerScope) }
     }
@@ -94,6 +105,7 @@ public class HierarhyCollect {
     private func registerDecl(decl: SimpleDecl, scope: Scope): Unit {
         match (decl) {
             case ScFuncDecl(f, _) => registerFuncDecl(f, scope)
+            case ScEmptyVarDecl(v, _) => todo()
             case ScVarDecl(v, b, _) => registerVarDecl(v, b, scope)
             case ScClassDecl(c) => registerClassDecl(c, scope)
             case ScInterfaceDecl(i) => registerInterfaceDecl(i, scope)
@@ -129,7 +141,7 @@ public class HierarhyCollect {
     }
 
     private func connectFuncDecl(_: FuncDeclData, _: Scope) {
-        // TODO: Connect types inside
+        // Nothing to be done
     }
 
     private func connectInterfaceDecl(interfaceDecl: InterfaceDeclData, scope: Scope) {
@@ -147,6 +159,7 @@ public class HierarhyCollect {
     private func connectDecl(decl: SimpleDecl, scope: Scope): Unit {
         match (decl) {
             case ScFuncDecl(f, _) => connectFuncDecl(f, scope)
+            case ScEmptyVarDecl(v, _) => ()
             case ScVarDecl(v, b, _) => ()
             case ScClassDecl(c) => connectClassDecl(c, scope)
             case ScInterfaceDecl(i) => connectInterfaceDecl(i, scope)

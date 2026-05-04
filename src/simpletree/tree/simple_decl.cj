@@ -44,6 +44,7 @@ public type SimpleProgram = ArrayList<SimpleDecl>
 
 public enum SimpleDecl {
     | ScFuncDecl(FuncDeclData, ?Type)
+    | ScEmptyVarDecl(SimplePattern, ?Type)
     | ScVarDecl(SimplePattern, SimpleExpr, ?Type)
     | ScRunExpr(SimpleExpr)
     | ScClassDecl(ClassDeclData)
