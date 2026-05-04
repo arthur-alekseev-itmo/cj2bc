@@ -5,60 +5,80 @@ import cj2bc.utils.todo
 import std.collection.HashMap
 import std.collection.ArrayList
 import cj2bc.analysis.typing.types.*
+import cj2bc.analysis.SymbolsScope
+
 
 private class InferContext {
-    let variables: HashMap<String, Type>
     let parent: ?InferContext
     let returnedTypes: ArrayList<Type>
+    let scope: SymbolsScope
 
-    public init() {
-        this.variables = HashMap()
+    public init(scope: SymbolsScope) {
         this.parent = None
         this.returnedTypes = ArrayList()
+        this.scope = scope
     }
 
-    public init(parent: InferContext) {
+    public func enterSymbol(name: String): InferContext {
+        let childScope = this.scope.children[name]
+        InferContext(childScope, this)
+    }
+
+    public init(scope: SymbolsScope, parent: InferContext) {
         this.parent = parent
-        this.variables = HashMap()
         this.returnedTypes = ArrayList()
+        this.scope = scope
     }
 
     public func addReturnedType(ty: Type): Unit {
         returnedTypes.add(ty)
     }
 
-    public func addValue(name: String, ty: Type): Unit {
-        variables.add(name, ty)
+    public func findSymbol(name: String): SimpleDecl {
+        scope.findSymbol(name)
     }
 
-    public func lookup(name: String): Type {
-        match ((variables.get(name), parent)) {
-            case (Some(x), _) => x
-            case (None, Some(p)) => p.lookup(name)
-            case (None, None) => throw Exception("The variable with name ${name} was not found")
-        }
+    public func findType(name: String): HierarhicalType {
+        scope.findType(name)
+    }
+
+    public func addSymbol(name: String, symbol: SimpleDecl): Unit {
+        scope.addSymbol(name, symbol)
     }
 }
 
 private type Ctx = InferContext
 
 public class Inference {
-    let hierarhy: ClassHierarhy
 
-    public init(hierarhy: ClassHierarhy) {
-        this.hierarhy = hierarhy
+    private let constraints = TypeConstraints()
+
+    private func constrainLower(l: Type, r: Type) {
+        if (let TUnknown(lid) <- l) {
+            constraints.addLower(lid, r)
+        }
+
+        if (let TUnknown(rid) <- r) {
+            constraints.addUpper(rid, l)
+        }
     }
 
-    public func infer(program: SimpleProgram): SimpleProgram {
-        let ctx = InferContext()
+    private func constrainUpper(l: Type, r: Type) {
+        if (let TUnknown(lid) <- l) {
+            constraints.addUpper(lid, r)
+        }
+
+        if (let TUnknown(rid) <- r) {
+            constraints.addLower(rid, l)
+        }
+    }
+
+    public func infer(program: SimpleProgram, scope: SymbolsScope): SimpleProgram {
+        let ctx = InferContext(scope)
         // TODO: Better builtins
         ctx.addValue("println", TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit)))
+        
         program.map { d: SimpleDecl => inferDecl(d, ctx) } 
-    }
-
-    private func upperbound(x: Type, _: Type): Type {
-        print("WARNING! GLB IS NOT DONE!")
-        x
     }
 
     private func inferIfThenElse(cond: SimpleExpr, brThen: SimpleExpr, brElse: ?SimpleExpr, ctx: Ctx) {
@@ -70,9 +90,9 @@ public class Inference {
         let (brThenType, iBrThen) = inferExpr(brThen, ctx)
         let (brElseType, iBrElse) = match (brElse.map {e => inferExpr(e, ctx) }) {
             case None => (TBasic(TUnit), None<SimpleExpr>)
-            case Some((x, y)) => (x, Some(y)) 
+            case Some((x, y)) => (x, Some(y))
         }
-        let wholeExprType = upperbound(brThenType, brElseType)
+        let wholeExprType = JoinAndMeet.join(brThenType, brElseType)
         (wholeExprType, ScIfThenElse(iCond, iBrThen, iBrElse))
     }
 
@@ -155,7 +175,7 @@ public class Inference {
     private func inferAssign(target: SimpleExpr, expr: SimpleExpr, ctx: Ctx) {
         let (targetTy, iTarget) = inferExpr(target, ctx)
         let (exprTy, iExpr) = inferExpr(expr, ctx)
-        // TODO: assert is super
+        constrainLower(targetTy, exprTy)
         (TBasic(TUnit), ScAssign(iTarget, iExpr))
     }
 
@@ -188,21 +208,21 @@ public class Inference {
         }
     }
 
-    private func resolveSimpleType(ty: SimpleType): Type {
+    private func resolveSimpleType(ty: SimpleType, ctx: Ctx): Type {
         match (ty) {
             case StPrimitive(StBool) => TBasic(TBool)
             case StPrimitive(StUnit) => TBasic(TUnit)
             case StPrimitive(StInt64) => TBasic(TInt64)
-            case StRefType(ref) => resolveHierarhicalType(hierarhy.findType(ref.name)) 
-            case StFuncType(f) => TFunction(f.parameters.map(resolveSimpleType), resolveSimpleType(f.result))
+            case StRefType(ref) => resolveHierarhicalType(ctx.findType(ref.name)) 
+            case StFuncType(f) => TFunction(f.parameters.map { p => resolveSimpleType(p, ctx) }, resolveSimpleType(f.result, ctx))
         }
     }
 
-    private func inferParameter(param: SimplePattern, _: Ctx) {
+    private func inferParameter(param: SimplePattern, ctx: Ctx) {
         // We know that type must always be provided for parameter
         match (param) {
             case ScVariable(v, Some(annotation), _) =>
-                let ty = resolveSimpleType(annotation)
+                let ty = resolveSimpleType(annotation, ctx)
                 (ty, ScVariable(v, Some(annotation), ty))
             case ScVariable(v, None, _) => throw Exception("Function parameter must be annotated")
         } 
@@ -210,27 +230,25 @@ public class Inference {
 
     private func addPatternToCtx(p: (Type, SimplePattern), ctx: Ctx) {
         match (p[1]) {
-            case ScVariable(v, _, _) => ctx.addValue(v, p[0])
+            case ScVariable(v, _, _) => ctx.addSymbol(v, p[0])
         }
     }
 
-    private func addTypeToPattern(p: SimplePattern, t: Type) {
+    private func addTypeToPattern(p: SimplePattern, t: Type, _: Ctx) {
         match (p) {
             case ScVariable(name, annotation, _) => ScVariable(name, annotation, t)
         }
     }
 
     private func inferFuncDecl(decl: FuncDeclData, ctx: Ctx) {
-        let newCtx = InferContext(ctx)
+        let newCtx = ctx.enterSymbol(decl.name)
         let decomposedParams = decl.parameters.map { p => inferParameter(p, ctx) }
         let (paramTypes, typedParams) = unzip(decomposedParams)
         newCtx.addValue(decl.name, TFunction(paramTypes, TNothing)) // For recursion
         decomposedParams.map { p: (Type, SimplePattern) => addPatternToCtx(p, newCtx) }
         let (bodyTy, iBody) = inferBlock(decl.body, newCtx)
         newCtx.addReturnedType(bodyTy)
-        let returnType = newCtx.returnedTypes.fold(TNothing, upperbound)
         let iDecl = FuncDeclData(decl.name, typedParams, iBody, decl.modifiers)
-        let ty = TFunction(paramTypes, returnType)
         ctx.addValue(decl.name, ty)
         ScFuncDecl(iDecl, ty) 
     }
@@ -238,7 +256,7 @@ public class Inference {
     private func inferVarDecl(pattern: SimplePattern, expr: SimpleExpr, ctx: Ctx) {
         let (ty, iExpr) = inferExpr(expr, ctx)
         addPatternToCtx((ty, pattern), ctx)
-        let iPattern = addTypeToPattern(pattern, ty)
+        let iPattern = addTypeToPattern(pattern, ty, ctx)
         ScVarDecl(iPattern, iExpr, ty)
     }
 

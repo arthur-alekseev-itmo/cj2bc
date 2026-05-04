@@ -77,7 +77,8 @@ public class ClassType <: HierarhicalType {
 }
 
 public enum Type {
-    | TUnknown
+    | TUnknown(Int64)
+    | TGeneric(String)
     | TAny
     | TNothing
     | TBasic(BasicType)
