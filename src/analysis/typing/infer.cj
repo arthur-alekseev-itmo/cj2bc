@@ -84,7 +84,7 @@ public class Inference {
     public func infer(program: SimpleProgram, scope: SymbolsScope): TypeConstraints {
         let ctx = InferContext(scope)
         // TODO: Better builtins
-        // ctx.addSymbol("println", TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit)))
+        ctx.addSymbol("println", TypedDecl(ScBuiltin("println"), TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit))))
         
         program.map { d: TypedDecl => inferDecl(d, ctx) } 
         constraints
@@ -186,7 +186,8 @@ public class Inference {
     }
 
     private func inferVarRef(expr: TypedExpr, name: String, ctx: Ctx) {
-        expr.ty = ctx.findSymbol(name).ty
+        let decl = ctx.findSymbol(name)
+        expr.ty = decl.ty
     }
 
     private func inferExpr(expr: TypedExpr, ctx: Ctx): Unit {
@@ -237,6 +238,7 @@ public class Inference {
         let newCtx = ctx.enterSymbol(f.name)
         // f.parameters.map { p: SimplePattern => inferParameter(p, ctx) }
         inferBlock(f.body, newCtx)
+        newCtx.returnedTypes.map { t: Type => constrainUpper(f.resultType, t) }
     }
 
     private func inferVarDecl(decl: TypedDecl, expr: TypedExpr, ctx: Ctx) {
@@ -260,6 +262,7 @@ public class Inference {
     private func inferDecl(decl: TypedDecl, ctx: Ctx): Unit {
         match (decl.decl) {
             case ScFuncDecl(f) => inferFuncDecl(decl, f, ctx)
+            case ScBuiltin(_) => ()
             case ScEmptyVarDecl(_) => todo()
             case ScVarDecl(v, b) => inferVarDecl(decl, b, ctx)
             case ScClassDecl(c) => inferClassDecl(c, ctx)

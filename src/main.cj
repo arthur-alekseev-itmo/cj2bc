@@ -40,8 +40,9 @@ main(args: Array<String>): Int64 {
         let content = readString(inputFile)
         let simpleProgram = SimpleParser.parse(content)
         let scope = Collect().collectHierarhy(simpleProgram)
-        let inferredProgram = Inference().infer(simpleProgram, scope)
+        let constraints = Inference().infer(simpleProgram, scope)
         PpSimpleTree.programToString(simpleProgram) |> println
+        PPConstraints.constraintsToString(constraints) |> println
         
         
         let state = Codegen().compileProgram(simpleProgram)

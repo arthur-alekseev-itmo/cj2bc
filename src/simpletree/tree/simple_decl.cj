@@ -10,14 +10,14 @@ public class FuncDeclData {
     public let parameters: ArrayList<SimplePattern>
     public let body: TypedBlock
     public let name: String
-    public let resultType: ?Type
+    public var resultType: Type
     public let modifiers: ArrayList<Modifier>
 
-    public init(name: String, parameters: ArrayList<SimplePattern>, body: TypedBlock, modifiers: ArrayList<Modifier>) { 
+    public init(name: String, parameters: ArrayList<SimplePattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, resultType: Type) { 
         this.parameters = parameters
         this.body = body
         this.name = name
-        this.resultType = None
+        this.resultType = resultType
         this.modifiers = modifiers
     }
 }
@@ -44,6 +44,7 @@ public type SimpleProgram = ArrayList<TypedDecl>
 
 public enum SimpleDecl {
     | ScFuncDecl(FuncDeclData)
+    | ScBuiltin(String)
     | ScEmptyVarDecl(SimplePattern)
     | ScVarDecl(SimplePattern, TypedExpr)
     | ScRunExpr(TypedExpr)

@@ -48,25 +48,25 @@ public class SimpleExprParser {
     private static func translateLiteral(literal: LitConstExpr): TypedExpr {
         if (literal.literal.kind == TokenKind.INTEGER_LITERAL) {
             let value = Int64.parse(literal.literal.value)
-            return returnTyped(ScConstInt64(value))
+            return TypedExpr(ScConstInt64(value), TBasic(TInt64))
         }
 
         if (literal.literal.kind == TokenKind.BOOL_LITERAL) {
             let value = Bool.parse(literal.literal.value)
-            return returnTyped(ScConstBool(value))
+            return TypedExpr(ScConstBool(value), TBasic(TBool))
         }
 
         todo()
     }
 
     private static func translateReturn(returnExpr: ReturnExpr): TypedExpr {
-        returnTyped(ScReturn(translateExpr(returnExpr.expr)))
+        TypedExpr(ScReturn(translateExpr(returnExpr.expr)), TNothing)
     }
 
     private static func translateAssign(assignExpr: AssignExpr): TypedExpr {
         let left = translateExpr(assignExpr.leftExpr)
         let right = translateExpr(assignExpr.rightExpr)
-        returnTyped(ScAssign(left, right))
+        TypedExpr(ScAssign(left, right), TBasic(TUnit))
     }
 
     private static func translateCall(callExpr: CallExpr): TypedExpr {

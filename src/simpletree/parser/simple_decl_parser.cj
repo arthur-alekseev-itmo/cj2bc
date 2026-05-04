@@ -19,7 +19,7 @@ public class SimpleDeclParser {
         let body = SimpleParser.translateBlock(funcDecl.block)
         let funcName = funcDecl.identifier.value
         let modifiers = funcDecl.modifiers
-        let simpleDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers))
+        let simpleDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers, TNothing))
         TypedDecl(simpleDecl, TUnknown(nextCnt()))
     }
 

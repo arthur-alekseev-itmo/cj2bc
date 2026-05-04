@@ -98,9 +98,9 @@ public class SymbolsScope {
 
     public func findSymbol(description: SymbolDescription): TypedDecl {
         match ((symbols.get(description), parent)) {
-            case (None, Some(p)) => p.findSymbol(name)
+            case (None, Some(p)) => p.findSymbol(description)
             case (Some(x), _) => x
-            case (None, None) => throw Exception("Hierarihical type was not found: ${name}")
+            case (None, None) => throw Exception("Sybmol was not found ${description.name}")
         }
     }
 }

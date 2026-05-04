@@ -1,7 +1,6 @@
 package cj2bc.analysis.typing
 
 import std.collection.ArrayList
-import std.collection.HashMap
 import cj2bc.simpletree.tree.*
 import cj2bc.utils.nextCnt
 import cj2bc.analysis.typing.types.*
@@ -29,9 +28,8 @@ public class Collect {
         c.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
     }
 
-    private func createFnType(f: FuncDeclData, scope: Scope) {
+    private func createFnType(f: FuncDeclData, returnType: Type, scope: Scope) {
         let parameters = f.parameters.map { p: SimplePattern => resolveParameterType(p, scope) }
-        let returnType = nextFreeVar()
         TFunction(parameters, returnType)
     }
 
@@ -46,7 +44,9 @@ public class Collect {
     }
 
     private func registerFuncDecl(e: TypedDecl, f: FuncDeclData, scope: Scope) {
-        e.ty = createFnType(f, scope)
+        let returnType = nextFreeVar()
+        e.ty = createFnType(f, returnType, scope)
+        f.resultType = returnType
         scope.addSymbol(f.name, e)
         f.parameters.map { p: SimplePattern => addParameterWithType(p, scope) }
         let innerScope = scope.enterSymbol(f.name)
@@ -104,6 +104,7 @@ public class Collect {
 
     private func registerDecl(decl: TypedDecl, scope: Scope): Unit {
         match (decl.decl) {
+            case ScBuiltin(_) => ()
             case ScFuncDecl(f) => registerFuncDecl(decl, f, scope)
             case ScEmptyVarDecl(v) => todo()
             case ScVarDecl(v, b) => registerVarDecl(decl, v, b, scope)
@@ -158,6 +159,7 @@ public class Collect {
 
     private func connectDecl(decl: TypedDecl, scope: Scope): Unit {
         match (decl.decl) {
+            case ScBuiltin(_) => ()
             case ScFuncDecl(f) => connectFuncDecl(f, scope)
             case ScEmptyVarDecl(v) => ()
             case ScVarDecl(v, b) => ()

@@ -43,7 +43,7 @@ public class PpSimpleTree {
     private static func blockToString(block: TypedBlock, offset: String) {
         let decls = block.map { d => declToString(d, offset + LEAP) }
         let strings = String.join(decls.toArray(), delimiter:"\n")
-        "{\n${strings}\n}\n"
+        "{\n${strings}\n${offset}}"
     }
 
     public static func exprToString(expr: TypedExpr): String {
@@ -51,6 +51,7 @@ public class PpSimpleTree {
     }
 
     private static func exprToString(expr: TypedExpr, offset: String): String {
+        let ty = typeToString(expr.ty)
         match (expr.expr) {
             case ScConstUnit => "()"
             case ScConstInt64(i) => i.toString()
@@ -69,9 +70,9 @@ public class PpSimpleTree {
                 let thenBr = exprToString(t, offset)
                 let elseBr = match (e) {
                     case None => ""
-                    case Some(x) => "else ${exprToString(x, offset)}"
+                    case Some(x) => "${offset}else ${exprToString(x, offset)}"
                 }
-                "if (${cond}) then ${thenBr} ${elseBr}"
+                "if (${cond}) then ${thenBr}${elseBr}"
             case ScCall(c, a) =>
                 let callee = exprToString(c, offset)
                 let args = a.map { x => exprToString(x, offset) }
@@ -79,7 +80,7 @@ public class PpSimpleTree {
             case ScBlockExpr(b) =>
                 blockToString(b, offset)
             case ScVarRef(name) =>
-                name
+                "[${ty}]${name}"
             case ScReturn(e) =>
                 let expr = exprToString(e, offset)
                 "return ${expr}"
@@ -120,9 +121,17 @@ public class PpSimpleTree {
         }
     }
 
+    public static func declToString(decl: TypedDecl): String {
+        declToString(decl, "")
+    }
+
     private static func declToString(decl: TypedDecl, offset: String): String {
         match (decl.decl) {
-            case ScEmptyVarDecl(_) => todo()
+            case ScBuiltin(n) =>
+                "${offset}<builtin ${n}>"
+            case ScEmptyVarDecl(n) =>
+                let pattern = patternToString(n)
+                "${offset}let ${pattern}"
             case ScVarDecl(v, e) => 
                 let pattern = patternToString(v)
                 let expr = exprToString(e, offset)
@@ -133,7 +142,7 @@ public class PpSimpleTree {
                 let params = String.join(paramStrings.toArray(), delimiter:", ")
                 let body = blockToString(f.body, offset)
                 let ty = decl.ty |> typeToString 
-                "${offset}func ${f.name}(${params})[${ty}] ${body}"
+                "${offset}func ${f.name}(${params})[${ty}] ${body}\n"
             case ScClassDecl(c) => 
                 let body = blockToString(c.innerDecls, offset)
                 let superTypeStrings = c.superTypes.map { c => simpleTypeToString(c) }

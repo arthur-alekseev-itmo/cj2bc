@@ -59,3 +59,18 @@ public class JoinAndMeet {
         r // TODO
     }
 }
+
+public class PPConstraints {
+    public static func constraintToString(target: Int64, c: TypeConstraint): String {
+        let lowerboundStrings = c.lowerbound.map(PPType.typeToString).toArray()
+        let lowerbounds = String.join(lowerboundStrings, delimiter:", ")
+        let upperboundStrings = c.upperbound.map(PPType.typeToString).toArray()
+        let upperbounds = String.join(upperboundStrings, delimiter:", ")
+        "${lowerbounds} <: ?${target} <: ${upperbounds}"
+    }
+
+    public static func constraintsToString(constraints: TypeConstraints): String {
+        let strings = constraints.constraints.toArray().map { kvp: (Int64, TypeConstraint) => constraintToString(kvp[0], kvp[1]) }
+        String.join(strings.toArray(), delimiter:"\n")
+    }
+}
