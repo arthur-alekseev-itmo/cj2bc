@@ -5,9 +5,7 @@ import cj2bc.utils.todo
 import std.collection.HashMap
 import std.collection.ArrayList
 import cj2bc.analysis.typing.types.*
-import cj2bc.analysis.SymbolsScope
-import cj2bc.simpletree.pp.PpSimpleTree
-
+import cj2bc.analysis.*
 
 private class InferContext {
     let parent: ?InferContext
@@ -52,79 +50,25 @@ private type Ctx = InferContext
 
 public class Inference {
 
-    private let constraints = TypeConstraints()
-
-    // left <: right
-    private func constrainLower(l: Type, r: Type) {
-        if (let TUnknown(lid) <- l) {
-            constraints.addLower(lid, r)
-        }
-
-        if (let TUnknown(rid) <- r) {
-            constraints.addUpper(rid, l)
-        }
-    }
-
-    // right <: left
-    private func constrainUpper(l: Type, r: Type) {
-        if (let TUnknown(lid) <- l) {
-            constraints.addUpper(lid, r)
-        }
-
-        if (let TUnknown(rid) <- r) {
-            constraints.addLower(rid, l)
-        }
-    }
-
-    private func constrainEq(l: Type, r: Type) {
-        constrainLower(l, r)
-        constrainUpper(l, r)
-    }
-
-    public func infer(program: SimpleProgram, scope: SymbolsScope): TypeConstraints {
+    public func infer(program: SimpleProgram, scope: SymbolsScope): Unit {
         let ctx = InferContext(scope)
         // TODO: Better builtins
         ctx.addSymbol("println", TypedDecl(ScBuiltin("println"), TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit))))
         
         program.map { d: TypedDecl => inferDecl(d, ctx) } 
-        constraints
     }
 
-    private func inferIfThenElse(e: TypedExpr, cond: TypedExpr, brThen: TypedExpr, brElse: ?TypedExpr, ctx: Ctx) {
-        inferExpr(cond, ctx)
-        inferExpr(brThen, ctx)
-        let brElseType = match (brElse) {
-            case None => TBasic(TUnit)
-            case Some(t) => t.ty
-        }
-        constrainUpper(e.ty, brThen.ty)
-        constrainUpper(e.ty, brElseType)
-        constrainEq(cond.ty, TBasic(TBool))
+    private func inferIfThenElse(_: TypedExpr, cond: TypedExpr, _: TypedExpr, _: ?TypedExpr, _: Ctx) {
+        cond.ty = TBasic(TBool)
     }
 
-    private func inferBinop(e: TypedExpr, op: SimpleBinaryOperator, left: TypedExpr, right: TypedExpr, ctx: Ctx) {
+    private func inferBinop(_: TypedExpr, _: SimpleBinaryOperator, left: TypedExpr, right: TypedExpr, ctx: Ctx) {
         inferExpr(left, ctx)
         inferExpr(right, ctx)
-        let leftTy = left.ty
-        let rightTy = right.ty
-        match(op) {
-            case Add | Sub | Mul | Div | Mod =>
-                constrainEq(e.ty, rightTy)
-                constrainEq(rightTy, leftTy)
-            case Eq | Neq | Ge | Le | Gt | Lt =>
-                constrainEq(e.ty, TBasic(TBool))
-            case And | Or =>
-                constrainEq(e.ty, TBasic(TBool))
-                constrainEq(leftTy, rightTy)
-            case BitAnd | BitOr | BitXor =>
-                constrainEq(e.ty, leftTy)
-                constrainEq(leftTy, rightTy)
-        }
     }
 
     private func inferUnop(_: SimpleUnaryOperator, expr: TypedExpr, ctx: Ctx) {
         inferExpr(expr, ctx)
-        // TODO: All of current binops do not alter the type
     } 
 
     private func unzip<T, U>(pairs: ArrayList<(T, U)>): (ArrayList<T>, ArrayList<U>) {
@@ -137,17 +81,10 @@ public class Inference {
         (lefts, rights)
     }
 
-    private func inferCall(e: TypedExpr, callee: TypedExpr, args: ArrayList<TypedExpr>, ctx: Ctx) {
+    private func inferCall(_: TypedExpr, callee: TypedExpr, args: ArrayList<TypedExpr>, ctx: Ctx): Unit {
         inferExpr(callee, ctx)
         args.map { a: TypedExpr => inferExpr(a, ctx) }
-        match (callee.ty) {
-            // TODO: Тут явно что-то не так, надо видимо как-то смотреть что это функция
-            case TFunction(params, body) =>
-                // TODO: Maybe check call types
-                // TODO: For real, generics might be needed, oh no...
-                constrainEq(e.ty, body)
-            case _ => throw Exception("Applying non function???? ${PpSimpleTree.exprToString(callee)}: ${PPType.typeToString(callee.ty)}")
-        }
+        // TODO: maybe something can be assumed if the function has known return type...
     }
 
     private func inferBlock(block: TypedBlock, ctx: Ctx) {
@@ -169,11 +106,14 @@ public class Inference {
 
     private func inferBlockExpr(expr: TypedExpr, block: TypedBlock, ctx: Ctx) {
         let ty = inferBlock(block, ctx)
-        constrainEq(expr.ty, ty)
+        expr.ty = ty
     }
 
     private func inferReturn(expr: TypedExpr, value: TypedExpr, ctx: Ctx) {
         expr.ty = TNothing        
+        // TODO: Do not mark the type as unknown later, to enable optimisations
+        // Enable boxing of return value
+        value.ty = TUnknown
         inferExpr(value, ctx)
         ctx.addReturnedType(value.ty)
     }
@@ -181,7 +121,6 @@ public class Inference {
     private func inferAssign(expr: TypedExpr, target: TypedExpr, value: TypedExpr, ctx: Ctx) {
         inferExpr(target, ctx)
         inferExpr(value, ctx)
-        constrainLower(target.ty, value.ty)  // !!!!
         expr.ty = TBasic(TUnit)
     }
 
@@ -190,8 +129,13 @@ public class Inference {
         expr.ty = decl.ty
     }
 
+    private func inferMemberAccess(_: TypedExpr, target: TypedExpr, _: String, ctx: Ctx) {
+        inferExpr(target, ctx)
+    }
+
     private func inferExpr(expr: TypedExpr, ctx: Ctx): Unit {
         return match (expr.expr) {
+            case ScMemberAccess(target, member) => inferMemberAccess(expr, target, member, ctx)
             case ScConstUnit => expr.ty = TBasic(TUnit)
             case ScConstInt64(_) => expr.ty = TBasic(TInt64)
             case ScConstBool(_) => expr.ty = TBasic(TBool)
@@ -224,21 +168,16 @@ public class Inference {
         }
     }
 
-    private func inferParameter(param: SimplePattern, ctx: Ctx) {
-        // We know that type must always be provided for parameter
-        match (param) {
-            case ScVariable(v, Some(annotation)) =>
-                let ty = resolveSimpleType(annotation, ctx)
-                (ty, ScVariable(v, Some(annotation)))
-            case ScVariable(v, None) => throw Exception("Function parameter must be annotated")
-        } 
-    }
-
     private func inferFuncDecl(_: TypedDecl, f: FuncDeclData, ctx: Ctx) {
-        let newCtx = ctx.enterSymbol(f.name)
-        // f.parameters.map { p: SimplePattern => inferParameter(p, ctx) }
+        let functionName = match (f.name) {
+            case "init" => ctx.scope.name
+            case other => other
+        }
+        let newCtx = ctx.enterSymbol(functionName)
         inferBlock(f.body, newCtx)
-        newCtx.returnedTypes.map { t: Type => constrainUpper(f.resultType, t) }
+        // TODO: Something cool here
+        // For example if all are known as Ints, make the result Int
+        // If not, make all return exprs unknwon to box them
     }
 
     private func inferVarDecl(decl: TypedDecl, expr: TypedExpr, ctx: Ctx) {
@@ -246,8 +185,9 @@ public class Inference {
         decl.ty = expr.ty
     }
 
-    private func inferClassDecl(_: ClassDeclData, _: Ctx) {
-        todo()
+    private func inferClassDecl(decl: ClassDeclData, ctx: Ctx) {
+        let newCtx = ctx.enterSymbol(decl.name)
+        decl.innerDecls.map { d: TypedDecl => inferDecl(d, newCtx) }    
     }
 
     private func inferInterfaceDecl(_: InterfaceDeclData, _: Ctx) {
@@ -256,7 +196,7 @@ public class Inference {
 
     private func inferRunExpr(decl: TypedDecl, expr: TypedExpr, ctx: Ctx) {
         inferExpr(expr, ctx)
-        constrainEq(decl.ty, expr.ty)
+        decl.ty = TBasic(TUnit)
     }
 
     private func inferDecl(decl: TypedDecl, ctx: Ctx): Unit {

@@ -70,7 +70,7 @@ public class PpSimpleTree {
                 let thenBr = exprToString(t, offset)
                 let elseBr = match (e) {
                     case None => ""
-                    case Some(x) => "${offset}else ${exprToString(x, offset)}"
+                    case Some(x) => " else ${exprToString(x, offset)}"
                 }
                 "if (${cond}) then ${thenBr}${elseBr}"
             case ScCall(c, a) =>
@@ -88,6 +88,9 @@ public class PpSimpleTree {
                 let target = exprToString(t, offset)
                 let value = exprToString(v, offset)
                 "${target} = ${value}" 
+            case ScMemberAccess(t, m) =>
+                let target = exprToString(t, offset)
+                "${target}.${m}"
         }
     }
 

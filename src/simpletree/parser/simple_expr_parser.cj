@@ -1,6 +1,5 @@
 package cj2bc.simpletree.parser
 
-import cj2bc.utils.nextCnt
 import cj2bc.simpletree.tree.*
 import std.ast.*
 import cj2bc.utils.todo
@@ -10,7 +9,7 @@ import std.convert.Parsable
 public class SimpleExprParser {
 
     private static func returnTyped(expr: SimpleExpr) {
-        TypedExpr(expr, TUnknown(nextCnt()))
+        TypedExpr(expr, TUnknown)
     }
 
     private static func translateBinaryExpr(binary: BinaryExpr): TypedExpr {
@@ -54,6 +53,10 @@ public class SimpleExprParser {
         if (literal.literal.kind == TokenKind.BOOL_LITERAL) {
             let value = Bool.parse(literal.literal.value)
             return TypedExpr(ScConstBool(value), TBasic(TBool))
+        }
+
+        if (literal.literal.kind == TokenKind.UNIT_LITERAL) {
+            return TypedExpr(ScConstUnit, TBasic(TUnit))
         }
 
         todo()
@@ -111,6 +114,13 @@ public class SimpleExprParser {
         returnTyped(ScVarRef(id))
     }
 
+    private static func translateMemberAccess(memberAccess: MemberAccess): TypedExpr {
+        let target = translateExpr(memberAccess.baseExpr)
+        let member = memberAccess.field.value
+        let expr = ScMemberAccess(target, member)
+        returnTyped(expr)
+    }
+
     public static func translateExpr(expr: Expr): TypedExpr {
         match (expr) {
             case block: Block => returnTyped(ScBlockExpr(SimpleParser.translateBlock(block)))
@@ -127,7 +137,7 @@ public class SimpleExprParser {
             case resumeExpr: ResumeExpr => todo()
             case assignExpr: AssignExpr => translateAssign(assignExpr)
             case callExpr: CallExpr => translateCall(callExpr)
-            case memberAccessExpr: MemberAccess => todo()
+            case memberAccessExpr: MemberAccess => translateMemberAccess(memberAccessExpr)
             case ifExpr: IfExpr => translateIfExpr(ifExpr)
             case letPatternExpr: LetPatternExpr => todo()
             case matchExpr: MatchExpr => todo()

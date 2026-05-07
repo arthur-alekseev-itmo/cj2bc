@@ -45,9 +45,13 @@ public class SymbolsScope {
     }
 
     public func enterSymbol(name: String): SymbolsScope {
-        let self = SymbolsScope(this, name)
-        addChild(name, self)
-        self 
+        if (let Some(child) <- children.get(name)) {
+            return child
+        }
+
+        let child = SymbolsScope(this, name)
+        addChild(name, child)
+        child 
     }
 
     private init(parent: SymbolsScope, name: String) {

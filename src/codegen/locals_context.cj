@@ -6,7 +6,6 @@ public enum Variable {
     | LocalVariable(UInt32)
     | ClosureVariable(UInt32)
     | GlobalVariable(UInt32)
-    // | BuiltinVariable(UInt32)
 }
 
 public class LocalsContextFrame {

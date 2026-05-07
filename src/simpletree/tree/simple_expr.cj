@@ -27,6 +27,7 @@ public enum SimpleExpr {
     | ScReturn(TypedExpr)
     | ScAssign(TypedExpr, TypedExpr)
     | ScVarRef(String)
+    | ScMemberAccess(TypedExpr, String)
 }
 
 public class TypedExpr {

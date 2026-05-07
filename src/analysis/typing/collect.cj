@@ -2,7 +2,6 @@ package cj2bc.analysis.typing
 
 import std.collection.ArrayList
 import cj2bc.simpletree.tree.*
-import cj2bc.utils.nextCnt
 import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
 import cj2bc.analysis.SymbolsScope
@@ -10,9 +9,6 @@ import cj2bc.analysis.SymbolsScope
 private type Scope = SymbolsScope
 
 public class Collect {
-    private func nextFreeVar() {
-        TUnknown(nextCnt())
-    }
 
     public func collectHierarhy(program: SimpleProgram): SymbolsScope {
         let scope = SymbolsScope()
@@ -44,12 +40,14 @@ public class Collect {
     }
 
     private func registerFuncDecl(e: TypedDecl, f: FuncDeclData, scope: Scope) {
-        let returnType = nextFreeVar()
-        e.ty = createFnType(f, returnType, scope)
-        f.resultType = returnType
-        scope.addSymbol(f.name, e)
+        let functionName = match(f.name) {
+            case "init" => scope.name // Name of the class
+            case other => other
+        }
+        e.ty = createFnType(f, TUnknown, scope)
+        scope.addSymbol(functionName, e)
         f.parameters.map { p: SimplePattern => addParameterWithType(p, scope) }
-        let innerScope = scope.enterSymbol(f.name)
+        let innerScope = scope.enterSymbol(functionName)
         f.body.map { decl: TypedDecl => registerDecl(decl, innerScope) }
     }
 
@@ -63,7 +61,6 @@ public class Collect {
     private func registerVarDecl(e: TypedDecl, v: SimplePattern, b: TypedExpr, scope: Scope) {
         let name = match (v) {
             case ScVariable(name, _) => name
-            case _ => throw Exception("Can only work with variables here")
         }
         registerExpr(b, scope)
         scope.addSymbol(name, e) 
@@ -99,6 +96,8 @@ public class Collect {
                 registerExpr(target, scope)
                 registerExpr(value, scope)
             case ScVarRef(_) => ()
+            case ScMemberAccess(target, _) =>
+                registerExpr(target, scope)
         }
     }
 
@@ -116,13 +115,6 @@ public class Collect {
 
     private func collectTypes(program: SimpleProgram, scope: Scope) {
         program.map { decl: TypedDecl => registerDecl(decl, scope) } 
-    }
-
-    private func resolveSimpleTypeToHierarhical(sty: SimpleType, scope: Scope): HierarhicalType {
-        match (sty) {
-            case StRefType(ref) => scope.findType(ref.name)
-            case _ => todo()
-        }
     }
 
     private func connectClassDecl(classDecl: ClassDeclData, scope: Scope) {

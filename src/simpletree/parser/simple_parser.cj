@@ -1,6 +1,5 @@
 package cj2bc.simpletree.parser
 
-import cj2bc.utils.nextCnt
 import cj2bc.simpletree.tree.*
 import std.ast.*
 import cj2bc.utils.todo
@@ -18,7 +17,7 @@ public class SimpleParser {
 
     public static func translateNode(node: Node): TypedDecl {
         match (node) {
-            case expr: Expr => TypedDecl(ScRunExpr(SimpleExprParser.translateExpr(expr)), TUnknown(nextCnt()))
+            case expr: Expr => TypedDecl(ScRunExpr(SimpleExprParser.translateExpr(expr)), TUnknown)
             case decl: Decl => SimpleDeclParser.translateDecl(decl)
             case _ => todo()
         }

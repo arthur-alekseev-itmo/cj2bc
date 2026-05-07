@@ -13,8 +13,7 @@ public class PPType {
 
     public static func typeToString(t: Type): String {
         match (t) {
-            case TUnknown(x) => "(?${x})"
-            case TGeneric(x) => x
+            case TUnknown => "(?)"
             case TAny => "Any"
             case TNothing => "Nothing" 
             case TBasic(b) => basicTypeToString(b)

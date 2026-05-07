@@ -4,7 +4,6 @@ import cj2bc.analysis.typing.types.*
 import cj2bc.simpletree.tree.*
 import std.ast.*
 import cj2bc.utils.todo
-import cj2bc.utils.nextCnt
 import std.collection.ArrayList
 
 public class SimpleDeclParser {
@@ -20,7 +19,7 @@ public class SimpleDeclParser {
         let funcName = funcDecl.identifier.value
         let modifiers = funcDecl.modifiers
         let simpleDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers, TNothing))
-        TypedDecl(simpleDecl, TUnknown(nextCnt()))
+        TypedDecl(simpleDecl, TUnknown)
     }
 
     private static func translateMainDecl(mainDecl: MainDecl) {
@@ -52,7 +51,7 @@ public class SimpleDeclParser {
         let pattern = ScVariable(varDecl.identifier.value, None)
         let expr = SimpleExprParser.translateExpr(varDecl.expr)
         let decl = ScVarDecl(pattern, expr)
-        TypedDecl(decl, TUnknown(nextCnt()))
+        TypedDecl(decl, TUnknown)
     }
 
     private static func translateClassDecl(classDecl: ClassDecl) {

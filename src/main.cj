@@ -4,13 +4,13 @@ import std.fs.File
 import std.fs.OpenMode
 import std.io.readString
 import cj2bc.simpletree.parser.SimpleParser
-import cj2bc.codegen.Codegen
 import cj2bc.bytecode.BytecodeFile
 import cj2bc.codegen.Linker
 import std.argopt.*
 
 import cj2bc.analysis.typing.*
 import cj2bc.simpletree.pp.PpSimpleTree
+import cj2bc.codegen.compiler.Compiler
 
 main(args: Array<String>): Int64 {
     let argSpecs = [
@@ -40,14 +40,11 @@ main(args: Array<String>): Int64 {
         let content = readString(inputFile)
         let simpleProgram = SimpleParser.parse(content)
         let scope = Collect().collectHierarhy(simpleProgram)
-        let constraints = Inference().infer(simpleProgram, scope)
+        Inference().infer(simpleProgram, scope)
         PpSimpleTree.programToString(simpleProgram) |> println
-        PPConstraints.constraintsToString(constraints) |> println
         
-        
-        let state = Codegen().compileProgram(simpleProgram)
+        let state = Compiler().compileProgram(simpleProgram)
         Linker().link(state)
-
 
         if (print) {
             println(state.bytecode.toString())
