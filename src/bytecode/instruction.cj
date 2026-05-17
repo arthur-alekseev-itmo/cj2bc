@@ -53,12 +53,13 @@ public enum Instruction <: ToString {
     | WriteToRef
     | FunctionAddress(UInt32)
     | New(UInt32)
-    | ReadField(UInt32)
+    | GetFieldRef(UInt32)
     | GetField(UInt32)
-    | CallMethod(UInt32)
-    | GetMethod(UInt32)
+    // | CallMethod(UInt32)
+    // | GetMethod(UInt32)
     | Box(UInt32)
     | Unbox
+    | LoadClass(UInt32)
 
     private func addCommand0To(tag: Byte, target: ArrayList<Byte>): Unit {
         target.add(tag)
@@ -125,12 +126,11 @@ public enum Instruction <: ToString {
             case WriteToRef => addCommand0To(0x2d, target)
             case FunctionAddress(x) => addCommand32To(0x2e, x, target)
             case New(x) => addCommand32To(0x2f, x, target)
-            case ReadField(x) => addCommand32To(0x30, x, target)
+            case GetFieldRef(x) => addCommand32To(0x30, x, target)
             case GetField(x) => addCommand32To(0x31, x, target)
-            case CallMethod(x) => addCommand32To(0x32, x, target)
-            case GetMethod(x) => addCommand32To(0x33, x, target)
-            case Box(x) => addCommand32To(0x34, x, target)
-            case Unbox => addCommand0To(0x35, target)
+            case Box(x) => addCommand32To(0x32, x, target)
+            case Unbox => addCommand0To(0x33, target)
+            case LoadClass(x) => addCommand32To(0x34, x, target)
         }
     }
 
@@ -185,11 +185,12 @@ public enum Instruction <: ToString {
             case FunctionAddress(x) => "FunctionAddress ${x}"
             case New(x) => "Gew ${x}"
             case GetField(x) => "GetField ${x}"
-            case ReadField(x) => "ReadField ${x}"
-            case CallMethod(x) => "CallMethod ${x}"
-            case GetMethod(x) => "GetMethod ${x}"
+            case GetFieldRef(x) => "GetFieldRef ${x}"
+            // case CallMethod(x) => "CallMethod ${x}"
+            // case GetMethod(x) => "GetMethod ${x}"
             case Box(x) => "Box ${x}"
             case Unbox => "Unbox"
+            case LoadClass(x) => "LoadClass ${x}"
         }
     }
 }

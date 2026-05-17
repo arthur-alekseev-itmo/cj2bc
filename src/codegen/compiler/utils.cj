@@ -9,9 +9,10 @@ public class Utils {
         branchIndexCounter
     }
 
-    public static func createFunctionHere(name: String, state: CodegenState): Unit {
+    public static func createFunctionHere(name: String, state: CodegenState): UInt32 {
         let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
         state.linkerData.addSymbol(name, LocGlobalFunction(idx))
+        return idx
     }
 
     public static func createLabelHere(name: String, state: CodegenState): Unit {

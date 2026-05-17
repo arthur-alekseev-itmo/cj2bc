@@ -3,17 +3,27 @@ package cj2bc.simpletree.tree
 import cj2bc.analysis.typing.types.Type
 import std.collection.ArrayList
 import std.ast.Modifier
+import std.deriving.Derive
 
 public type TypedBlock = ArrayList<TypedDecl>
+
+@Derive[Equatable]
+public enum FunctionType {
+    | FtFunction
+    | FtMethod
+    | FtCtor
+}
 
 public class FuncDeclData {
     public let parameters: ArrayList<SimplePattern>
     public let body: TypedBlock
-    public let name: String
+    public var name: String
     public var resultType: Type
     public let modifiers: ArrayList<Modifier>
+    public var functionType: FunctionType
 
     public init(name: String, parameters: ArrayList<SimplePattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, resultType: Type) { 
+        this.functionType = FtFunction
         this.parameters = parameters
         this.body = body
         this.name = name

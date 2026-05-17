@@ -3,7 +3,7 @@ import cj2bc.bytecode.Bytecode
 import cj2bc.bytecode.Instruction
 
 public class Linker {
-    public func link(state: CodegenState) {
+    public func link(state: CodegenState): Unit {
         let data = state.linkerData
         for (relocation in data.relocations) {
             patch(relocation, state)

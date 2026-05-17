@@ -6,6 +6,7 @@ import cj2bc.bytecode.Instruction
 import cj2bc.simpletree.tree.*
 import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
+import cj2bc.codegen.StringHashser
 
 public class ExprCompiler {
 
@@ -44,27 +45,30 @@ public class ExprCompiler {
     }
 
     private static func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
-        func simple(instruction: Instruction) {
+        func simple(instruction: String) {
+            let operatorCall = StringHashser.getHash(instruction)
             compileExprTo(left, state)
+            state.bytecode.addInstruction(GetField(operatorCall))
             compileExprTo(right, state)
-            state.bytecode.addInstruction(instruction)
+            state.bytecode.addInstruction(Swap)
+            state.bytecode.addInstruction(CallObject)
         }
 
         match (op) {
-            case Add => simple(Instruction.Add)
-            case Sub => simple(Instruction.Sub)
-            case Mul => simple(Instruction.Mul)
-            case Div => simple(Instruction.Div)
-            case Mod => simple(Instruction.Mod)
-            case Eq => simple(Instruction.Eq)
-            case Neq => simple(Instruction.Neq)
-            case Le => simple(Instruction.Le)
-            case Lt => simple(Instruction.Lt)
-            case Ge => simple(Instruction.Ge)
-            case Gt => simple(Instruction.Gt)
-            case BitXor => simple(Instruction.BitXor)
-            case BitAnd => simple(Instruction.BitAnd)
-            case BitOr => simple(Instruction.BitOr)
+            case Add => simple("+")
+            case Sub => simple("-")
+            case Mul => simple("*")
+            case Div => simple("/")
+            case Mod => simple("%")
+            case Eq => simple("==")
+            case Neq => simple("!=")
+            case Le => simple("<=")
+            case Lt => simple("<")
+            case Ge => simple(">=")
+            case Gt => simple(">")
+            case BitXor => simple("^")
+            case BitAnd => simple("&")
+            case BitOr => simple("|")
             case And => compileIfThenElseTo(left, right, TypedExpr(ScConstBool(false), TBasic(TBool)), state)
             case Or => compileIfThenElseTo(left, TypedExpr(ScConstBool(true), TBasic(TBool)), right, state)
         }
@@ -82,6 +86,8 @@ public class ExprCompiler {
     private static func compileCallTo(callee: TypedExpr, arguments: ArrayList<TypedExpr>, state: CodegenState) {
         arguments.map { argument: TypedExpr => compileExprTo(argument, state) }
         compileExprTo(callee, state)
+        let operatorCall = StringHashser.getHash("()")
+        state.bytecode.addInstruction(GetField(operatorCall))
         state.bytecode.addInstruction(Instruction.CallObject)
     }
 
@@ -94,12 +100,16 @@ public class ExprCompiler {
         }
     }
 
-    private static func compileMemberAccessAsRefTo(_: TypedExpr, _: String, _: CodegenState) {
-        todo()
+    private static func compileMemberAccessAsRefTo(target: TypedExpr, member: String, state: CodegenState) {
+        let memberHash = StringHashser.getHash(member) 
+        compileExprTo(target, state)
+        state.bytecode.addInstruction(GetFieldRef(memberHash))
     }
 
-    private static func compileMemberAccessTo(_: TypedExpr, _: String, _: CodegenState) {
-        todo()
+    private static func compileMemberAccessTo(target: TypedExpr, member: String, state: CodegenState) {
+        let memberHash = StringHashser.getHash(member)
+        compileExprTo(target, state)
+        state.bytecode.addInstruction(GetField(memberHash))
     }
 
     public static func compileExprAsRefTo(expr: TypedExpr, state: CodegenState): Unit {
@@ -135,6 +145,15 @@ public class ExprCompiler {
 
     private static func compileVarTo(name: String, state: CodegenState) {
         let variable = state.locals.getVariable(name)
+        
+        let decl = state.scope.findSymbol(name)
+        match (decl.decl) {
+            case ScClassDecl(c) => 
+                let ldclass = LoadClass(StringHashser.getHash(c.name))
+                return state.bytecode.addInstruction(ldclass)
+            case _ => ()
+        }
+        
         match (variable) {
             case Some(GlobalVariable(x)) => state.bytecode.addInstruction(LoadGlobal(x))
             case Some(LocalVariable(x)) => state.bytecode.addInstruction(LoadLocal(x))
@@ -143,6 +162,7 @@ public class ExprCompiler {
                 state.bytecode.addInstruction(LoadGlobal(UInt32.Max))
                 Utils.createRelocationHere(name, 4, 1, state)
         }
+
     }
 
     private static func compileAssignTo(target: TypedExpr, expr: TypedExpr, state: CodegenState) {

@@ -1,7 +1,6 @@
 package cj2bc.simpletree.parser
 
 import cj2bc.simpletree.tree.*
-
 import std.ast.*
 import cj2bc.utils.todo
 

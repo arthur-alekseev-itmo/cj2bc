@@ -17,10 +17,11 @@ public class Collect {
         scope
     }
 
-    private func registerClassDecl(c: ClassDeclData, scope: Scope): Unit {
+    private func registerClassDecl(decl: TypedDecl, c: ClassDeclData, scope: Scope): Unit {
         let ty = ClassType(c.name)
         let newScope = scope.enterSymbol(ty.name)
         scope.addType(c.name, ty)
+        scope.addSymbol(c.name, decl)
         c.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
     }
 
@@ -41,7 +42,7 @@ public class Collect {
 
     private func registerFuncDecl(e: TypedDecl, f: FuncDeclData, scope: Scope) {
         let functionName = match(f.name) {
-            case "init" => scope.name // Name of the class
+            case "init" => "()"
             case other => other
         }
         e.ty = createFnType(f, TUnknown, scope)
@@ -51,10 +52,11 @@ public class Collect {
         f.body.map { decl: TypedDecl => registerDecl(decl, innerScope) }
     }
 
-    private func registerInterfaceDecl(i: InterfaceDeclData, scope: Scope) {
+    private func registerInterfaceDecl(decl: TypedDecl, i: InterfaceDeclData, scope: Scope) {
         let ty = InterfaceType(i.name)
         let newScope = scope.enterSymbol(ty.name)
         scope.addType(i.name, ty)
+        scope.addSymbol(i.name, decl)
         i.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
     }
 
@@ -107,8 +109,8 @@ public class Collect {
             case ScFuncDecl(f) => registerFuncDecl(decl, f, scope)
             case ScEmptyVarDecl(v) => todo()
             case ScVarDecl(v, b) => registerVarDecl(decl, v, b, scope)
-            case ScClassDecl(c) => registerClassDecl(c, scope)
-            case ScInterfaceDecl(i) => registerInterfaceDecl(i, scope)
+            case ScClassDecl(c) => registerClassDecl(decl, c, scope)
+            case ScInterfaceDecl(i) => registerInterfaceDecl(decl, i, scope)
             case ScRunExpr(r) => registerRunExpr(r, scope)
         }
     }

@@ -169,11 +169,7 @@ public class Inference {
     }
 
     private func inferFuncDecl(_: TypedDecl, f: FuncDeclData, ctx: Ctx) {
-        let functionName = match (f.name) {
-            case "init" => ctx.scope.name
-            case other => other
-        }
-        let newCtx = ctx.enterSymbol(functionName)
+        let newCtx = ctx.enterSymbol(f.name)
         inferBlock(f.body, newCtx)
         // TODO: Something cool here
         // For example if all are known as Ints, make the result Int

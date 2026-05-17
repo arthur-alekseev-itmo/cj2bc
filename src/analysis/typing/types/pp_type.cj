@@ -22,7 +22,8 @@ public class PPType {
                 let paramStrings = p.map(typeToString).toArray()
                 let params = String.join(paramStrings, delimiter:", ")
                 "(${params}) -> ${result}"
-            case _ => todo()
+            case TClass(c) => c.name
+            case TInterface(c) => c.name
         }
     }
 }

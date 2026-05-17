@@ -83,7 +83,6 @@ public class SimpleExprParser {
     private static func translateIfExpr(ifExpr: IfExpr): TypedExpr {
         let condition = translateExpr(ifExpr.condition)
         let thenBranch = SimpleParser.translateBlock(ifExpr.ifBlock)
-        // TODO: Шедевр я не могу
         let elseBranch = try {
             Some(translateExpr(ifExpr.elseExpr))
         } catch (_) {

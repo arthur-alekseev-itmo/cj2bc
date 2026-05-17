@@ -27,13 +27,13 @@ public struct SymbolDescription <: Equatable<SymbolDescription> & Hashable {
 }
 
 public class SymbolsScope {
-    let symbols: HashMap<SymbolDescription, TypedDecl>
-    let types: HashMap<String, HierarhicalType>
+    private let symbols: HashMap<SymbolDescription, TypedDecl>
+    private let types: HashMap<String, HierarhicalType>
 
-    let parent: ?SymbolsScope 
-    let children: HashMap<String, SymbolsScope>
-    let name: String
-    let path: String
+    private let parent: ?SymbolsScope 
+    public let children: HashMap<String, SymbolsScope>
+    private let name: String
+    private let path: String
 
     public init() {
         this.symbols = HashMap()
@@ -104,7 +104,23 @@ public class SymbolsScope {
         match ((symbols.get(description), parent)) {
             case (None, Some(p)) => p.findSymbol(description)
             case (Some(x), _) => x
-            case (None, None) => throw Exception("Sybmol was not found ${description.name}")
+            case (None, None) => throw Exception("Sybmol was not found: ${description.name}")
         }
+    }
+
+    public func getName(): String {
+        name
+    }
+    
+    public func getPath(): String {
+        path
+    }
+
+    public func isRoot(): Bool {
+        parent.isNone()
+    }
+
+    public func getParent(): SymbolsScope {
+        parent.getOrThrow()
     }
 }

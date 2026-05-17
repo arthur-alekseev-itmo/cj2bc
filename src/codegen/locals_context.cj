@@ -56,12 +56,8 @@ public class LocalsContextFrame {
         variables.clear()
     }
 
-    public func getParent() {
+    public func getParent(): ?LocalsContextFrame {
         parent
-    }
-
-    public func getVariableIndex() {
-
     }
 }
 

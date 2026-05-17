@@ -16,7 +16,7 @@ public struct LinkerRelocation <: ToString {
         this.size = size
     }
 
-    public func toString() {
+    public func toString(): String {
         return "Symbol: ${symbolName}, Offset: ${instructionOffset}, Position: ${instructionPosition}, Size: ${size}"
     }
 }
@@ -48,7 +48,7 @@ public class LinkerData <: ToString {
         relocations.add(LinkerRelocation(location, name, size, offset))
     }
 
-    public func toString() {
+    public func toString(): String {
         let sb = StringBuilder()
         sb.append("RELOCATIONS\n")
         for (relocation in relocations) {

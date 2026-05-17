@@ -2,6 +2,7 @@ package cj2bc.codegen.compiler
 
 import cj2bc.codegen.CodegenState
 import cj2bc.simpletree.tree.*
+import cj2bc.analysis.SymbolsScope
 
 public class Compiler {
 
@@ -15,8 +16,8 @@ public class Compiler {
         state.bytecode.addInstruction(Return)
     }
 
-    public func compileProgram(program: SimpleProgram): CodegenState {
-        let state = CodegenState()
+    public func compileProgram(program: SimpleProgram, scope: SymbolsScope): CodegenState {
+        let state = CodegenState(scope)
         DeclCompiler.compileProgramTo(program, state)
         appendBuiltinsTo(state)
         state
