@@ -4,6 +4,6 @@ class TodoException <: Exception {
 
 }
 
-public func todo() {
+public func todo(): Nothing {
     throw TodoException()
 }

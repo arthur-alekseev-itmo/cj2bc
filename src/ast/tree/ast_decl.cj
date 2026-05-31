@@ -1,0 +1,73 @@
+package cj2bc.ast.tree
+
+import cj2bc.ast.types.*
+import std.collection.ArrayList
+import std.ast.Modifier
+import std.deriving.Derive
+
+public type TypedBlock = ArrayList<TypedDecl>
+
+@Derive[Equatable]
+public enum FunctionType {
+    | FtFunction
+    | FtMethod
+    | FtCtor
+}
+
+public class FuncDeclData {
+    public let parameters: ArrayList<CjPattern>
+    public let body: TypedBlock
+    public var name: String
+    public var resultType: Type
+    public let modifiers: ArrayList<Modifier>
+    public var functionType: FunctionType
+
+    public init(name: String, parameters: ArrayList<CjPattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, resultType: Type) { 
+        this.functionType = FtFunction
+        this.parameters = parameters
+        this.body = body
+        this.name = name
+        this.resultType = resultType
+        this.modifiers = modifiers
+    }
+}
+
+open public class InterfaceDeclData {
+    public let innerDecls: ArrayList<TypedDecl>
+    public let name: String
+    public let superTypes: ArrayList<CjType>
+
+    public init(name: String, superTypes: ArrayList<CjType>, innerDecls: ArrayList<TypedDecl>) {
+        this.name = name
+        this.innerDecls = innerDecls
+        this.superTypes = superTypes
+    }
+}
+
+public class ClassDeclData <: InterfaceDeclData {
+    public init(name: String, superTypes: ArrayList<CjType>, innerDecls: ArrayList<TypedDecl>) {
+        super(name, superTypes, innerDecls)
+    }
+}
+
+public type CjProgram = ArrayList<TypedDecl>
+
+public enum CjDecl {
+    | ScFuncDecl(FuncDeclData)
+    | ScBuiltin(String)
+    | ScEmptyVarDecl(CjPattern)
+    | ScVarDecl(CjPattern, TypedExpr)
+    | ScRunExpr(TypedExpr)
+    | ScClassDecl(ClassDeclData)
+    | ScInterfaceDecl(InterfaceDeclData)
+}
+
+public class TypedDecl {
+    public let decl: CjDecl
+    public var ty: Type
+
+    public init(decl: CjDecl, ty: Type) {
+        this.decl = decl
+        this.ty = ty
+    }
+}

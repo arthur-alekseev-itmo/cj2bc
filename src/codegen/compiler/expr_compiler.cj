@@ -1,12 +1,12 @@
 package cj2bc.codegen.compiler
 
-import cj2bc.codegen.CodegenState
+import cj2bc.codegen.state.CodegenState
 import std.collection.ArrayList
 import cj2bc.bytecode.Instruction
-import cj2bc.simpletree.tree.*
-import cj2bc.analysis.typing.types.*
+import cj2bc.ast.tree.*
+import cj2bc.ast.types.*
 import cj2bc.utils.todo
-import cj2bc.codegen.StringHashser
+import cj2bc.codegen.state.StringHashser
 
 let INT_CLASS_ID = 1u32
 let BOOL_CLASS_ID = 2u32
@@ -50,7 +50,7 @@ public class ExprCompiler {
         Utils.createLabelHere("$BRANCH_END_${branchIndex}", state)
     }
 
-    private static func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
+    private static func compileBinaryOperatorTo(op: CjBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
         func simple(instruction: String) {
             let operatorCall = StringHashser.getHash(instruction)
             compileExprTo(left, state)
@@ -80,7 +80,7 @@ public class ExprCompiler {
         }
     }
 
-    private static func compileUnaryOpTo(op: SimpleUnaryOperator, expr: TypedExpr, state: CodegenState) {
+    private static func compileUnaryOpTo(op: CjUnaryOperator, expr: TypedExpr, state: CodegenState) {
         compileExprTo(expr, state)
         let instruction = match (op) {
             case Neg => Instruction.Neg

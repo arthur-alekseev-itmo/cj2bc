@@ -3,23 +3,23 @@ package cj2bc
 import std.fs.File
 import std.fs.OpenMode
 import std.io.readString
-import cj2bc.simpletree.parser.SimpleParser
-import cj2bc.codegen.Linker
+
 import std.argopt.*
-import cj2bc.transform.Transform
-import cj2bc.analysis.typing.*
-import cj2bc.simpletree.pp.PpSimpleTree
-import cj2bc.codegen.compiler.Compiler
-import cj2bc.codegen.StringHashser
-import cj2bc.bytecode.*
+
+import cj2bc.parse.CjParser
+import cj2bc.semantic.Analyzer
+import cj2bc.prettyprint.PPAst
+import cj2bc.codegen.state.StringHashser
+import cj2bc.codegen.Codegen
+import cj2bc.codegen.CodegenResult
 
 main(args: Array<String>): Int64 {
-    let argSpecs = [
-        Full("input", r'i', RequiredValue),
-        Full("output", r'o', RequiredValue),
-        Full("print", r'p', OptionalValue)
-    ]
     try {
+        let argSpecs = [
+            Full("input", r'i', RequiredValue),
+            Full("output", r'o', RequiredValue),
+            Full("print", r'p', OptionalValue)
+        ]
         var result = parseArguments(args, argSpecs)
 
         let input = match (result.options.get("input")) {
@@ -38,34 +38,27 @@ main(args: Array<String>): Int64 {
         }
 
         // Reserve string hashes:
+        // - operator overload
+        // - some functions to be builtin
+        // All to be overriden in interpreter
         StringHashser.reserveSymbols()
         
 
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
-        let simpleProgram = SimpleParser.parse(content)
-        let scope = Collect().collectHierarhy(simpleProgram)
-        Transform.transform(simpleProgram, scope)
-        Inference().infer(simpleProgram, scope)
-        PpSimpleTree.programToString(simpleProgram) |> println
+        let tree = CjParser.parse(content)
+        let scope = Analyzer.analyze(tree)
         
-        let state = Compiler().compileProgram(simpleProgram, scope)
-        Linker().link(state)
+        PPAst.programToString(tree) |> println
+        
+        let code = Codegen.codegen(tree, scope)
 
         if (print) {
-            println(state.bytecode.toString())
-            println(state.linkerData.toString())
-            for (c in state.classes) {
-                println(c[1].toString())
-            }
+            println(code.toString())
+            StringHashser.printStrings()
         }
 
-        let classesHeader = BytecodeClassesHeader()
-        state.classes.mapValues { v => classesHeader.addClass(v.toClassHeader()) }
-        let bytecodeHeader = BytecodeBytecodeHeader(state.bytecode)
-        let file = BytecodeFile(classesHeader, bytecodeHeader)
-        StringHashser.printStrings()
-
+        let file = code.toFile()
         file.save(output)
 
     } catch (e: ArgumentParseException) {

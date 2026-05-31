@@ -1,6 +1,7 @@
 package cj2bc.codegen.compiler
 
-import cj2bc.codegen.*
+import cj2bc.codegen.state.CodegenState
+import cj2bc.codegen.state.LinkerLocation
 
 public class Utils {
     private static var branchIndexCounter = 0;

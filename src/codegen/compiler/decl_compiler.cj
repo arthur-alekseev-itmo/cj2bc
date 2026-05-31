@@ -1,12 +1,12 @@
 package cj2bc.codegen.compiler
 
-import cj2bc.codegen.ClassData
-import cj2bc.simpletree.tree.*
-import cj2bc.codegen.CodegenState
+import cj2bc.codegen.state.ClassData
+import cj2bc.ast.tree.*
+import cj2bc.codegen.state.CodegenState
 import cj2bc.utils.todo
 
 public class DeclCompiler {
-    private static func storePatternTo(pattern: SimplePattern, state: CodegenState) {
+    private static func storePatternTo(pattern: CjPattern, state: CodegenState) {
         match (pattern) {
             case ScVariable(name, _) =>
                 let variable = state.locals.addVariable(name)
@@ -39,7 +39,7 @@ public class DeclCompiler {
         ExprCompiler.compileBlockTo(decl.body, newState)
     }
 
-    private static func compileVarDeclTo(pattern: SimplePattern, expr: TypedExpr, state: CodegenState) {
+    private static func compileVarDeclTo(pattern: CjPattern, expr: TypedExpr, state: CodegenState) {
         if (let ClassScope(c) <- state.scope.getOrigin()) {
             let name = match (pattern) {
                 case ScVariable(name, _) => name
@@ -82,7 +82,7 @@ public class DeclCompiler {
         }
     }
 
-    public static func compileProgramTo(program: SimpleProgram, state: CodegenState): Unit {
+    public static func compileProgramTo(program: CjProgram, state: CodegenState): Unit {
         program.map { decl: TypedDecl => compileDeclTo(decl, true, state) }
     }
 }
