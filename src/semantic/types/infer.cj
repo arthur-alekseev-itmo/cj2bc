@@ -89,7 +89,8 @@ public class Inference {
 
     private static func inferBlock(block: TypedBlock, ctx: Ctx) {
         let lastDecl = block.last
-        let otherDecls = block.take(block.size - 1)
+        let otherDecls = if (block.isEmpty()) { block } else { block.take(block.size - 1) }
+
         otherDecls.map { d => inferDecl(d, ctx) }
 
         match (lastDecl.map { x => x.decl}) {
@@ -187,7 +188,8 @@ public class Inference {
     }
 
     private static func inferInterfaceDecl(_: InterfaceDeclData, _: Ctx) {
-        todo()
+        println("Warning: ignoring infer in interface")
+        ()
     }
 
     private static func inferRunExpr(decl: TypedDecl, expr: TypedExpr, ctx: Ctx) {

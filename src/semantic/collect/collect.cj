@@ -5,6 +5,7 @@ import cj2bc.common.SymbolsScope
 
 public class Collect {
     public static func collect(program: CjProgram): SymbolsScope {
-        return CollectTypes().collectHierarhy(program)
+        let scope = CollectTypes.collectHierarhy(program)
+        CollectSignatures.collect(program, scope)
     }
 }
