@@ -8,19 +8,25 @@ import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
 import cj2bc.codegen.StringHashser
 
+let INT_CLASS_ID = 1u32
+let BOOL_CLASS_ID = 2u32
+
 public class ExprCompiler {
 
     private static func compileLoadUnitTo(state: CodegenState) {
         state.bytecode.addInstruction(LoadImm(0))
+        state.bytecode.addInstruction(Instruction.Box(INT_CLASS_ID))
     }
 
     private static func compileLoadBoolTo(bool: Bool, state: CodegenState) {
         let asInt = if (bool) { 1 } else { 0 }
         state.bytecode.addInstruction(LoadImm(UInt64(asInt)))
+        state.bytecode.addInstruction(Instruction.Box(BOOL_CLASS_ID))
     }
 
     private static func compileLoadConstInt64To(value: Int64, state: CodegenState) {
         state.bytecode.addInstruction(LoadImm(UInt64(value)))
+        state.bytecode.addInstruction(Instruction.Box(INT_CLASS_ID))
     }
 
     private static func compileIfThenElseTo(cond: TypedExpr, thenBr: TypedExpr, elseBr: ?TypedExpr, state: CodegenState): Unit {
@@ -162,7 +168,6 @@ public class ExprCompiler {
                 state.bytecode.addInstruction(LoadGlobal(UInt32.Max))
                 Utils.createRelocationHere(name, 4, 1, state)
         }
-
     }
 
     private static func compileAssignTo(target: TypedExpr, expr: TypedExpr, state: CodegenState) {

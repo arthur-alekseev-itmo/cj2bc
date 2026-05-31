@@ -31,7 +31,7 @@ public enum SimpleExpr {
 }
 
 public class TypedExpr {
-    public let expr: SimpleExpr
+    public var expr: SimpleExpr
     public var ty: Type
 
     public init(expr: SimpleExpr, ty: Type) {

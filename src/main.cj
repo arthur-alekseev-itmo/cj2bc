@@ -37,6 +37,10 @@ main(args: Array<String>): Int64 {
             case None => false
         }
 
+        // Reserve string hashes:
+        StringHashser.reserveSymbols()
+        
+
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
         let simpleProgram = SimpleParser.parse(content)

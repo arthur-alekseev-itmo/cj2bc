@@ -42,8 +42,10 @@ public class MemberData <: ToString {
 public class ClassData <: ToString {
     private let name: String
     private let members: ArrayList<MemberData>
+    private var fieldCount: UInt32
 
     public init(name: String) {
+        this.fieldCount = 0
         this.name = name
         this.members = ArrayList<MemberData>()
     }
@@ -56,6 +58,16 @@ public class ClassData <: ToString {
     public func addCtor(name: String, offset: UInt32): Unit {
         let member = MemberData(name, MtCtor, offset)
         members.add(member)
+    }
+
+    public func addField(name: String, offset: UInt32): Unit {
+        let member = MemberData(name, MtField, offset)
+        members.add(member)
+    }
+
+    public func addNextField(name: String): Unit {
+        addField(name, fieldCount)
+        fieldCount++
     }
 
     public func toString(): String {

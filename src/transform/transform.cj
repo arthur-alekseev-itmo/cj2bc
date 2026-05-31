@@ -3,7 +3,7 @@ package cj2bc.transform
 import cj2bc.simpletree.tree.*
 import cj2bc.analysis.typing.types.*
 import cj2bc.analysis.SymbolsScope
-import std.ast.Modifier
+import std.collection.ArrayList
 
 // What it does:
 // Ctor: function -> ctor
@@ -22,7 +22,7 @@ public class Transform {
         TypedDecl(ScRunExpr(TypedExpr(ScReturn(expr), TNothing)), TNothing)
     }
 
-    private static func addReturnToBlock(block: TypedBlock, _: Scope) {
+    private static func addExplicitReturnToBlock(block: TypedBlock, _: Scope) {
         let length = block.size
         if (length == 0) {
             return
@@ -39,17 +39,26 @@ public class Transform {
         }
     }
 
-    private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
-        addReturnToBlock(f.body, scope)
+    private static func addExplicitThisToMethod(f: FuncDeclData, scope: Scope) {
+        f.parameters.add(ScVariable("this", None), at: 0)
+        scope.enterSymbol(f.name).addSymbol("this", TypedDecl(ScEmptyVarDecl(ScVariable("this", None)), TUnknown))
+    }
 
+    private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
         if (f.name == "init") {
             f.name = "()"
             f.functionType = FtCtor
+            ConstructorTransforms.addExplicitReturnThisToCtor(f)
+            addExplicitThisToMethod(f, scope)
+            ConstructorTransforms.addFieldInitialisationToCtor(f, scope)
             return
         }
 
+        addExplicitReturnToBlock(f.body, scope)
+
         if (!scope.isRoot()) {
             f.functionType = FtMethod
+            addExplicitThisToMethod(f, scope)
             return
         }
     }

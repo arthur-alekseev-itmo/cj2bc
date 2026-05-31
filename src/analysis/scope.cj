@@ -5,7 +5,7 @@ import cj2bc.utils.todo
 import std.collection.HashMap
 import std.collection.ArrayList
 import cj2bc.analysis.typing.types.*
-
+import std.deriving.Derive
 
 public struct SymbolDescription <: Equatable<SymbolDescription> & Hashable {
     // TODO: Stuff for overloading
@@ -26,6 +26,13 @@ public struct SymbolDescription <: Equatable<SymbolDescription> & Hashable {
     }
 }
 
+public enum ScopeOrigin {
+    | ClassScope(ClassDeclData)
+    | InterfaceScope(InterfaceDeclData)
+    | FunctonScope(FuncDeclData)
+    | GlobalScope
+}
+
 public class SymbolsScope {
     private let symbols: HashMap<SymbolDescription, TypedDecl>
     private let types: HashMap<String, HierarhicalType>
@@ -34,6 +41,7 @@ public class SymbolsScope {
     public let children: HashMap<String, SymbolsScope>
     private let name: String
     private let path: String
+    private let origin: ScopeOrigin
 
     public init() {
         this.symbols = HashMap()
@@ -42,25 +50,30 @@ public class SymbolsScope {
         this.children = HashMap()
         this.name = ""
         this.path = ""
+        this.origin = GlobalScope
     }
 
     public func enterSymbol(name: String): SymbolsScope {
         if (let Some(child) <- children.get(name)) {
             return child
         }
+        throw Exception("Cannot find scope with name: ${name}")
+    }   
 
-        let child = SymbolsScope(this, name)
+    public func createSymbol(name: String, origin: ScopeOrigin): SymbolsScope {
+        let child = SymbolsScope(this, name, origin)
         addChild(name, child)
         child 
     }
 
-    private init(parent: SymbolsScope, name: String) {
+    private init(parent: SymbolsScope, name: String, origin: ScopeOrigin) {
         this.symbols = HashMap()
         this.types = HashMap()
         this.parent = parent
         this.children = HashMap()
         this.name = name
         this.path = "${parent.path}.${name}"
+        this.origin = origin
     }
 
     private func getRoot(): SymbolsScope {
@@ -122,5 +135,12 @@ public class SymbolsScope {
 
     public func getParent(): SymbolsScope {
         parent.getOrThrow()
+    }
+
+    public func getSymbols(): HashMap<SymbolDescription, TypedDecl> {
+        return this.symbols
+    }
+    public func getOrigin(): ScopeOrigin {
+        return origin
     }
 }

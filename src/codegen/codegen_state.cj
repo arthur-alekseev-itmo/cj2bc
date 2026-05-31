@@ -10,7 +10,7 @@ public class CodegenState {
     public let linkerData: LinkerData 
     public let locals: LocalsContextFrame 
     public let scope: SymbolsScope
-    
+
     public func enterSymbol(symbol: String): CodegenState {
         let newScope = scope.enterSymbol(symbol)
         let newState = CodegenState(newScope, this)

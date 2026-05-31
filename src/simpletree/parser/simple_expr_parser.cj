@@ -105,7 +105,12 @@ public class SimpleExprParser {
     }
 
     private static func translateRefExpr(refExpr: RefExpr): TypedExpr {
+        if (refExpr.identifier.kind == TokenKind.THIS) {
+            return returnTyped(ScVarRef("this"))
+        }
+
         if (refExpr.identifier.kind != TokenKind.IDENTIFIER) {
+            refExpr.dump()
             throw Exception("Cannot work with ref values like this")
         }
 

@@ -16,10 +16,25 @@ public class StringHashser {
         }
     }
 
-
     public static func printStrings(): Unit {
         for ((k, v) in HASHES) {
             println("${v} ${k}")
         }
+    }
+
+    public static func reserveSymbols(): Unit {
+        StringHashser.getHash("()")
+        StringHashser.getHash("+")
+        StringHashser.getHash("-")
+        StringHashser.getHash("*")
+        StringHashser.getHash("/")
+        StringHashser.getHash("%")
+        StringHashser.getHash("<")
+        StringHashser.getHash("<=")
+        StringHashser.getHash("==")
+        StringHashser.getHash(">")
+        StringHashser.getHash(">=")
+        StringHashser.getHash("!=")
+        // TODO: Other operators
     }
 }

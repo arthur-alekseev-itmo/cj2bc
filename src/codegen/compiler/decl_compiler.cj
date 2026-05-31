@@ -23,12 +23,12 @@ public class DeclCompiler {
         let offset = Utils.createFunctionHere(decl.name, state)
 
         if (decl.functionType == FtMethod) {
-            let className = state.scope.getPath()
+            let className = state.scope.getName() // state.scope.getPath()
             state.classes[className].addMethod(decl.name, offset)
         }
 
         if (decl.functionType == FtCtor) {
-            let className = state.scope.getPath()
+            let className = state.scope.getName() // state.scope.getPath()
             state.classes[className].addCtor(decl.name, offset)            
         }
 
@@ -40,6 +40,12 @@ public class DeclCompiler {
     }
 
     private static func compileVarDeclTo(pattern: SimplePattern, expr: TypedExpr, state: CodegenState) {
+        if (let ClassScope(c) <- state.scope.getOrigin()) {
+            let name = match (pattern) {
+                case ScVariable(name, _) => name
+            }
+            state.classes[c.name].addNextField(name)
+        }
         ExprCompiler.compileExprTo(expr, state)
         storePatternTo(pattern, state)
     }

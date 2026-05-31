@@ -4,6 +4,7 @@ import std.collection.ArrayList
 import cj2bc.simpletree.tree.*
 import cj2bc.analysis.typing.types.*
 import cj2bc.utils.todo
+import cj2bc.analysis.ScopeOrigin
 import cj2bc.analysis.SymbolsScope
 
 private type Scope = SymbolsScope
@@ -19,7 +20,7 @@ public class Collect {
 
     private func registerClassDecl(decl: TypedDecl, c: ClassDeclData, scope: Scope): Unit {
         let ty = ClassType(c.name)
-        let newScope = scope.enterSymbol(ty.name)
+        let newScope = scope.createSymbol(ty.name, ScopeOrigin.ClassScope(c))
         scope.addType(c.name, ty)
         scope.addSymbol(c.name, decl)
         c.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
@@ -48,13 +49,13 @@ public class Collect {
         e.ty = createFnType(f, TUnknown, scope)
         scope.addSymbol(functionName, e)
         f.parameters.map { p: SimplePattern => addParameterWithType(p, scope) }
-        let innerScope = scope.enterSymbol(functionName)
+        let innerScope = scope.createSymbol(functionName, ScopeOrigin.FunctonScope(f))
         f.body.map { decl: TypedDecl => registerDecl(decl, innerScope) }
     }
 
     private func registerInterfaceDecl(decl: TypedDecl, i: InterfaceDeclData, scope: Scope) {
         let ty = InterfaceType(i.name)
-        let newScope = scope.enterSymbol(ty.name)
+        let newScope = scope.createSymbol(ty.name, ScopeOrigin.InterfaceScope(i))
         scope.addType(i.name, ty)
         scope.addSymbol(i.name, decl)
         i.innerDecls.map { decl: TypedDecl => registerDecl(decl, newScope) }
