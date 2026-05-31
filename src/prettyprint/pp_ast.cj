@@ -40,9 +40,12 @@ public class PPAst {
     }
 
     private static func blockToString(block: TypedBlock, offset: String) {
-        let decls = block.map { d => declToString(d, offset + LEAP) }
-        let strings = String.join(decls.toArray(), delimiter:"\n")
-        "{\n${strings}\n${offset}}"
+        if (block.isEmpty()) {
+            return "{ }"
+        }
+        let decls = block.map { d => "\n" + declToString(d, offset + LEAP) }
+        let strings = String.join(decls.toArray())
+        "{${strings}\n${offset}}"
     }
 
     public static func exprToString(expr: TypedExpr): String {
@@ -93,20 +96,20 @@ public class PPAst {
         }
     }
 
-    private static func CjTypeToString(t: CjType): String {
+    private static func cjTypeToString(t: CjType): String {
         match (t) {
             case StPrimitive(StBool) => "StBool"
             case StPrimitive(StUInt64) => "StInt64"
             case StPrimitive(StUnit) => "StUnit"
             case StRefType(r) =>
                 let name = r.name
-                let argStrings = r.arguments.map(CjTypeToString)
+                let argStrings = r.arguments.map(cjTypeToString)
                 let args = String.join(argStrings.toArray(), delimiter:", ")
                 let argsBr = if (args.size > 0) { "<${args}>" } else { "" }
                 "${name}${argsBr}"
             case StFuncType(p) =>
-                let paramStrings = p.parameters.map(CjTypeToString)
-                let returnTy = CjTypeToString(p.result)
+                let paramStrings = p.parameters.map(cjTypeToString)
+                let returnTy = cjTypeToString(p.result)
                 "(${paramStrings}) -> ${returnTy}"
         }
     }
@@ -118,7 +121,7 @@ public class PPAst {
     private static func patternToString(pattern: CjPattern) {
         match (pattern) {
             case ScVariable(name, a) =>
-                let annotation = a.map(CjTypeToString).map { x => ": ${x}"}.getOrDefault {""}
+                let annotation = a.map(cjTypeToString).map { x => ": ${x}"}.getOrDefault {""}
                 "${name}${annotation}"
         }
     }
@@ -144,20 +147,20 @@ public class PPAst {
                 let params = String.join(paramStrings.toArray(), delimiter:", ")
                 let body = blockToString(f.body, offset)
                 let ty = decl.ty |> typeToString 
-                "${offset}func ${f.name}(${params})[${ty}] ${body}\n"
+                "${offset}func ${f.name}(${params})[${ty}] ${body}"
             case ScClassDecl(c) => 
                 let body = blockToString(c.innerDecls, offset)
-                let superTypeStrings = c.superTypes.map { c => CjTypeToString(c) }
+                let superTypeStrings = c.superTypes.map { c => cjTypeToString(c) }
                 let superTypes = String.join(superTypeStrings.toArray(), delimiter:" & ")
-                "${offset}class ${c.name} <: ${superTypes} ${body}"
+                "${offset}class ${c.name} <: ${superTypes} ${body}\n"
             case ScRunExpr(e) =>
                 let expr = exprToString(e, offset)
                 "${offset}${expr}"
             case ScInterfaceDecl(i) =>
                 let body = blockToString(i.innerDecls, offset)
-                let superTypeStrings = i.superTypes.map { c => CjTypeToString(c) }
+                let superTypeStrings = i.superTypes.map { c => cjTypeToString(c) }
                 let superTypes = String.join(superTypeStrings.toArray(), delimiter:" & ")
-                "${offset}interface ${i.name} <: ${superTypes}"
+                "${offset}interface ${i.name} <: ${superTypes} ${body}\n"
         }
     }
 }
