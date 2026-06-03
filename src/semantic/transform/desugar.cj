@@ -3,6 +3,7 @@ package cj2bc.semantic.transform
 import cj2bc.ast.tree.*
 import cj2bc.ast.types.*
 import cj2bc.common.SymbolsScope
+import cj2bc.common.ScopeOrigin
 import std.collection.ArrayList
 
 // What it does:
@@ -15,6 +16,7 @@ public class Desugar {
 
     private static func transformClassDecl(c: ClassDeclData, scope: Scope): Unit {
         let newScope = scope.enterSymbol(c.name)
+        ConstructorTransforms.addImplcitCtor(c, newScope)
         c.innerDecls.map { d: TypedDecl => transformDecl(d, newScope) } 
     }
 
@@ -45,20 +47,22 @@ public class Desugar {
     }
 
     private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
-        if (f.name == "init") {
+        if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin() && f.name == "init") {
             f.name = "()"
             f.functionType = FtCtor
             ConstructorTransforms.addExplicitReturnThisToCtor(f)
             addExplicitThisToMethod(f, scope)
             ConstructorTransforms.addFieldInitialisationToCtor(f, scope)
+            ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
             return
         }
 
         addExplicitReturnToBlock(f.body, scope)
 
-        if (!scope.isRoot()) {
+        if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin()) {
             f.functionType = FtMethod
             addExplicitThisToMethod(f, scope)
+            ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
             return
         }
     }

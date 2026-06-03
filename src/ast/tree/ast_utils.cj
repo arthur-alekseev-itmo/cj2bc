@@ -30,4 +30,22 @@ public class AstUtils {
                 fExpr(target)
         }
     }
-}
+
+    public static func mapExpr(expr: TypedExpr, fExpr: (TypedExpr) -> TypedExpr, fDecl: (TypedDecl) -> TypedDecl): TypedExpr{
+        let inner = match (expr.expr) {
+            case ScConstUnit => expr.expr
+            case ScConstInt64(_)  => expr.expr
+            case ScConstBool(_)  => expr.expr
+            case ScIfThenElse(cond, thenBr, elseBr) => ScIfThenElse(fExpr(cond), fExpr(thenBr), elseBr.map(fExpr))
+            case ScBinaryOperator(x, left, right) => ScBinaryOperator(x, fExpr(left), fExpr(right))
+            case ScUnaryOperator(x, expr) => ScUnaryOperator(x, fExpr(expr))
+            case ScCall(callee, args) => ScCall(fExpr(callee), args.map { a: TypedExpr => fExpr(a) })
+            case ScBlockExpr(block) => ScBlockExpr(block.map { decl: TypedDecl => fDecl(decl) })
+            case ScReturn(expr) => ScReturn(fExpr(expr))
+            case ScAssign(target, value) => ScAssign(fExpr(target), fExpr(value))
+            case ScVarRef(_) => expr.expr
+            case ScMemberAccess(target, x) => ScMemberAccess(fExpr(target), x)
+        }
+
+        TypedExpr(inner, expr.ty)
+    }}

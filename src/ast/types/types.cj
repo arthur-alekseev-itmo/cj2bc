@@ -74,6 +74,10 @@ public class ClassType <: HierarhicalType {
         }
         extends = klass
     }
+
+    public func getExtend(): ?ClassType {
+        extends
+    }
 }
 
 public enum Type {

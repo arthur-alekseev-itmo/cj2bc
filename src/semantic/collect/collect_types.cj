@@ -21,6 +21,7 @@ public class CollectTypes {
 
     private static func registerClassDecl(decl: TypedDecl, c: ClassDeclData, scope: Scope): Unit {
         let ty = ClassType(c.name)
+        c.ty = Some(ty)
         let newScope = scope.createSymbol(ty.name, ScopeOrigin.ClassScope(c))
         scope.addType(c.name, ty)
         scope.addSymbol(c.name, decl)
@@ -29,6 +30,7 @@ public class CollectTypes {
 
     private static func registerInterfaceDecl(decl: TypedDecl, i: InterfaceDeclData, scope: Scope) {
         let ty = InterfaceType(i.name)
+        i.ty = Some(ty)
         let newScope = scope.createSymbol(ty.name, ScopeOrigin.InterfaceScope(i))
         scope.addType(i.name, ty)
         scope.addSymbol(i.name, decl)

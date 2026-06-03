@@ -16,7 +16,7 @@ public enum FunctionType {
 
 public class FuncDeclData {
     public let parameters: ArrayList<CjPattern>
-    public let body: TypedBlock
+    public var body: TypedBlock
     public var name: String
     public var resultType: Type
     public let modifiers: ArrayList<Modifier>
@@ -36,6 +36,7 @@ open public class InterfaceDeclData {
     public let innerDecls: ArrayList<TypedDecl>
     public let name: String
     public let superTypes: ArrayList<CjType>
+    public var ty: ?HierarhicalType = None
 
     public init(name: String, superTypes: ArrayList<CjType>, innerDecls: ArrayList<TypedDecl>) {
         this.name = name

@@ -34,7 +34,9 @@ public class CodegenResult <: ToString {
     public override func toString(): String {
         let bcString = getBytecode().toString()
         let relocString = state.linkerData.toString()
-        "${bcString}\n${relocString}"
+        let classStrings = state.classes.values().toArray().map { x => x.toString() }
+        let classes = String.join(classStrings.toArray(), delimiter:"\n")
+        "${bcString}\n${relocString}\n${classes}"
     }
 
     public func toFile(): BytecodeFile {
