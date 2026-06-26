@@ -2,6 +2,7 @@ package cj2bc.ast.tree
 
 import std.collection.ArrayList
 import cj2bc.ast.types.Type
+import cj2bc.ast.types.HierarhicalType
 
 public enum CjBinaryOperator {
     | Add | Sub | Mul | Div | Mod
@@ -27,6 +28,7 @@ public enum CjExpr {
     | ScReturn(TypedExpr)
     | ScAssign(TypedExpr, TypedExpr)
     | ScVarRef(String)
+    | ScCast(TypedExpr, HierarhicalType)
     | ScMemberAccess(TypedExpr, String)
 }
 

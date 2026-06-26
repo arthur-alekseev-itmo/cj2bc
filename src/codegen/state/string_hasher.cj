@@ -35,6 +35,8 @@ public class StringHashser {
         StringHashser.getHash(">")
         StringHashser.getHash(">=")
         StringHashser.getHash("!=")
+        StringHashser.getHash("-unary")
+        StringHashser.getHash("!")
         // TODO: Other operators
     }
 }

@@ -28,6 +28,8 @@ public class AstUtils {
             case ScVarRef(_) => ()
             case ScMemberAccess(target, _) =>
                 fExpr(target)
+            case ScCast(target, _) =>
+                fExpr(target)
         }
     }
 
@@ -44,6 +46,7 @@ public class AstUtils {
             case ScReturn(expr) => ScReturn(fExpr(expr))
             case ScAssign(target, value) => ScAssign(fExpr(target), fExpr(value))
             case ScVarRef(_) => expr.expr
+            case ScCast(expr, ty) => ScCast(fExpr(expr), ty)
             case ScMemberAccess(target, x) => ScMemberAccess(fExpr(target), x)
         }
 

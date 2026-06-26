@@ -32,6 +32,7 @@ public class ExprCompiler {
     private static func compileIfThenElseTo(cond: TypedExpr, thenBr: TypedExpr, elseBr: ?TypedExpr, state: CodegenState): Unit {
         let branchIndex = Utils.getBranchNextIndex()
         compileExprTo(cond, state)
+        state.bytecode.addInstruction(Instruction.Unbox)
         state.bytecode.addInstruction(Instruction.Not)
 
         state.bytecode.addInstruction(JumpTrue(UInt32.Max))
@@ -82,11 +83,14 @@ public class ExprCompiler {
 
     private static func compileUnaryOpTo(op: CjUnaryOperator, expr: TypedExpr, state: CodegenState) {
         compileExprTo(expr, state)
+        let notHash = StringHashser.getHash("!")
+        let negHash = StringHashser.getHash("-unary")
         let instruction = match (op) {
-            case Neg => Instruction.Neg
-            case Not => Instruction.Not
+            case Neg => negHash
+            case Not => notHash
         }
-        state.bytecode.addInstruction(instruction)
+        state.bytecode.addInstruction(GetField(instruction))
+        state.bytecode.addInstruction(CallObject)
     }
 
     private static func compileCallTo(callee: TypedExpr, arguments: ArrayList<TypedExpr>, state: CodegenState) {
@@ -131,6 +135,7 @@ public class ExprCompiler {
             case ScReturn(expr) => todo()
             case ScAssign(target, expr) => todo()
             case ScVarRef(name) => compileVarAsRefTo(name, state)
+            case ScCast(_, _) => Utils.unableAsRef()
             case ScMemberAccess(target, member) => compileMemberAccessAsRefTo(target, member, state)
         }
     }
@@ -147,6 +152,12 @@ public class ExprCompiler {
     private static func compileReturnTo(returnExpr: TypedExpr, state: CodegenState) {
         compileExprTo(returnExpr, state)
         state.bytecode.addInstruction(Return)
+    }
+ 
+    private static func compileCastTo(value: TypedExpr, ty: HierarhicalType, state: CodegenState) {
+        compileExprTo(value, state)
+        let typeHash = StringHashser.getHash(ty.name)
+        state.bytecode.addInstruction(Cast(typeHash))
     }
 
     private static func compileVarTo(name: String, state: CodegenState) {
@@ -189,6 +200,7 @@ public class ExprCompiler {
             case ScReturn(expr) => compileReturnTo(expr, state)
             case ScAssign(target, expr) => compileAssignTo(target, expr, state)
             case ScVarRef(name) => compileVarTo(name, state)
+            case ScCast(target, ty) => compileCastTo(target, ty, state)
             case ScMemberAccess(target, member) => compileMemberAccessTo(target, member, state)
         }
     }

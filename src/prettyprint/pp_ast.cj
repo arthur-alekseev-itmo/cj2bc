@@ -93,6 +93,10 @@ public class PPAst {
             case ScMemberAccess(t, m) =>
                 let target = exprToString(t, offset)
                 "${target}.${m}"
+            case ScCast(v, t) =>
+                let target = exprToString(v, offset)
+                let ty = t.name
+                "(${target} as ${ty})"
         }
     }
 

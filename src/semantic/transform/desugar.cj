@@ -46,14 +46,23 @@ public class Desugar {
         scope.enterSymbol(f.name).addSymbol("this", TypedDecl(ScEmptyVarDecl(ScVariable("this", None)), TUnknown))
     }
 
+    private static func transformFunctionInner(f: FuncDeclData, scope: Scope): Unit {
+        let innerScope = scope.enterSymbol(f.name)
+        for (decl in f.body) {
+            transformDecl(decl, scope)
+        }
+    }
+
     private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin() && f.name == "init") {
             f.name = "()"
             f.functionType = FtCtor
             ConstructorTransforms.addExplicitReturnThisToCtor(f)
+            ConstructorTransforms.addImplicitSuperCall(f, klass, scope)
             addExplicitThisToMethod(f, scope)
             ConstructorTransforms.addFieldInitialisationToCtor(f, scope)
             ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
+            transformFunctionInner(f, scope)
             return
         }
 
@@ -63,15 +72,18 @@ public class Desugar {
             f.functionType = FtMethod
             addExplicitThisToMethod(f, scope)
             ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
+            transformFunctionInner(f, scope)
             return
         }
+
+        transformFunctionInner(f, scope)
     }
 
     public static func transformDecl(decl: TypedDecl, scope: Scope): Unit {
         match (decl.decl) {
             case ScFuncDecl(d) => transformFuncDecl(decl, d, scope)
             case ScClassDecl(c) => transformClassDecl(c, scope)
-            case ScRunExpr(e) => ()
+            case ScRunExpr(e) => ExprTransforms.transformExpr(e, scope)
             case _ => ()
         }
     } 

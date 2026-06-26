@@ -69,6 +69,7 @@ public class ClassType <: HierarhicalType {
     }
 
     public func setExtend(klass: ClassType): Unit {
+        println("Setting extend of ${name} to ${klass.name}")
         if (extends.isSome()) {
             throw Exception("Superclass is already set")
         }

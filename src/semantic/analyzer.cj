@@ -6,6 +6,8 @@ import cj2bc.semantic.transform.Desugar
 import cj2bc.semantic.types.Inference
 import cj2bc.common.SymbolsScope
 
+import cj2bc.prettyprint.PPAst
+
 public class Analyzer {
     public static func analyze(program: CjProgram): SymbolsScope {
         let scope = Collect.collect(program)

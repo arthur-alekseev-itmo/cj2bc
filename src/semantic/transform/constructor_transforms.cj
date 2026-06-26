@@ -67,4 +67,28 @@ public class ConstructorTransforms {
         scope.createSymbol("()", ScopeOrigin.FunctonScope(declData))
         klass.innerDecls.add(emptyCtor)
     }
+
+    private static func isSuperCall(decl: TypedDecl) {
+        if (let ScRunExpr(e) <- decl.decl) {
+            if (let ScCall(e, _) <- e.expr) {
+                if (let ScVarRef(x) <- e.expr) {
+                    return x == "super"
+                }
+            }
+        }
+        return false
+    }
+
+    public static func addImplicitSuperCall(ctor: FuncDeclData, klass: ClassDeclData, scope: Scope): Unit {
+        let hasExplicitCall = ctor.body.first.map(isSuperCall) == Some(true)
+        let hasSuperclass = match (scope.findType(klass.name)) {
+            case klass: ClassType => klass.getExtend().isSome()
+            case _ => false
+        }
+        if (hasExplicitCall || !hasSuperclass) {
+            return
+        }
+        let explicitCall = TypedDecl(ScRunExpr(TypedExpr(ScCall(TypedExpr(ScVarRef("super"), TUnknown), ArrayList()), TUnknown)), TUnknown)
+        ctor.body.add(explicitCall, at:0)
+    }
 }

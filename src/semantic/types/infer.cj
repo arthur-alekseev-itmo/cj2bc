@@ -134,6 +134,11 @@ public class Inference {
         inferExpr(target, ctx)
     }
 
+    private static func inferCast(expr: TypedExpr, target: TypedExpr, ty: HierarhicalType, ctx: Ctx) {
+        inferExpr(target, ctx)
+        expr.ty = resolveHierarhicalType(ty)
+    }
+
     private static func inferExpr(expr: TypedExpr, ctx: Ctx): Unit {
         return match (expr.expr) {
             case ScMemberAccess(target, member) => inferMemberAccess(expr, target, member, ctx)
@@ -148,6 +153,7 @@ public class Inference {
             case ScReturn(value) => inferReturn(expr, value, ctx)
             case ScAssign(target, value) => inferAssign(expr, target, value, ctx)
             case ScVarRef(v) => inferVarRef(expr, v, ctx)
+            case ScCast(v, ty) => inferCast(expr, v, ty, ctx)
         }
     }
 

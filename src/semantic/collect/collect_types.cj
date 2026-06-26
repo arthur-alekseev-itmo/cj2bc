@@ -68,10 +68,17 @@ public class CollectTypes {
         program.map { decl: TypedDecl => registerDecl(decl, scope) } 
     }
 
+    private static func hierarhicalTypeOfCjType(ty: CjType, scope: Scope) {
+        match (ty) {
+            case StRefType(name) => scope.findType(name.name)
+            case _ => throw Exception("Given type was not a ref type")
+        }
+    }
+
     private static func connectClassDecl(classDecl: ClassDeclData, scope: Scope) {
         let klassOption = scope.findType(classDecl.name) as ClassType
         let klass = klassOption.getOrThrow()
-        let superTypes = classDecl.superTypes.map { ty => resolveCjType(ty, scope) }
+        let superTypes = classDecl.superTypes.map { ty => hierarhicalTypeOfCjType(ty, scope) }
         let ifaces = superTypes.filterMap { i => i as InterfaceType }
         let classes = superTypes.filterMap { c => c as ClassType }
         

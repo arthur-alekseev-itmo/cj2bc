@@ -109,6 +109,10 @@ public class CjExprParser {
             return returnTyped(ScVarRef("this"))
         }
 
+        if (refExpr.identifier.kind == TokenKind.SUPER) {
+            return returnTyped(ScVarRef("super"))
+        } 
+
         if (refExpr.identifier.kind != TokenKind.IDENTIFIER) {
             refExpr.dump()
             throw Exception("Cannot work with ref values like this")
