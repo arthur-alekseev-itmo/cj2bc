@@ -91,6 +91,8 @@ public class ConstructorTransforms {
         clinitDeclData.functionType = FtStaticMethod
         scope.createSymbol("$clinit", ScopeOrigin.FunctonScope(clinitDeclData))
         addFieldInitialisationToCtor(clinitDeclData, scope, takeStatics: true)
+        let returnUnit = TypedDecl(ScRunExpr(TypedExpr(ScReturn(TypedExpr(ScConstUnit, TBasic(TUnit))), TNothing)), TNothing)
+        clinitDeclData.body.add(returnUnit)
         klass.innerDecls.add(clinit)
     }
 }
