@@ -4,24 +4,45 @@ import std.collection.ArrayList
 import std.deriving.Derive
 import cj2bc.bytecode.*
 
-@Derive[ToString]
-public enum MemberType {
-    | MtField
-    | MtCtor
-    | MtMethod
-    | MtStaticMethod
-    | MtStaticField
-
-    public func toUInt32(): UInt32 {
-        match (this) {
-            case MtField => 0x1
-            case MtMethod => 0x2
-            case MtCtor => 0x3
-            case MtStaticMethod => 0x4
-            case MtStaticField => 0x5
-        }
-    }
-}
+/* ===== Emitted by MacroCall @Derive in classes_data.cj:7:1 ===== */
+/* 7.1 */public enum MemberType {
+/* 7.2 */    | MtField
+/* 7.3 */    | MtCtor
+/* 7.4 */    | MtMethod
+/* 7.5 */    | MtStaticMethod
+/* 7.6 */    | MtStaticField
+/* 7.7 */    
+/* 7.8 */    public func toUInt32(): UInt32 {
+/* 7.9 */        match(this) {
+/* 7.10 */            case MtField => 0x1
+/* 7.11 */            case MtMethod => 0x2
+/* 7.12 */            case MtCtor => 0x3
+/* 7.13 */            case MtStaticMethod => 0x4
+/* 7.14 */            case MtStaticField => 0x5
+/* 7.15 */        }
+/* 7.16 */    }
+/* 7.17 */}
+/* 7.18 */extend MemberType <: ToString {
+/* 7.19 */    public func toString(): String {
+/* 7.20 */        let sb = StringBuilder()
+/* 7.21 */        sb.append("MemberType")
+/* 7.22 */        match(this) {
+/* 7.23 */            case MtField => sb.append(".MtField")
+/* 7.24 */            ()
+/* 7.25 */            case MtCtor => sb.append(".MtCtor")
+/* 7.26 */            ()
+/* 7.27 */            case MtMethod => sb.append(".MtMethod")
+/* 7.28 */            ()
+/* 7.29 */            case MtStaticMethod => sb.append(".MtStaticMethod")
+/* 7.30 */            ()
+/* 7.31 */            case MtStaticField => sb.append(".MtStaticField")
+/* 7.32 */            ()
+/* 7.33 */        }
+/* 7.34 */        return sb.toString()
+/* 7.35 */    }
+/* 7.36 */}
+/* 7.37 */
+/* ===== End of the Emit ===== */
 
 public class MemberData <: ToString {
     private let typ: MemberType

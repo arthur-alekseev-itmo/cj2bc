@@ -43,14 +43,10 @@ public class CollectSignatures {
     }
 
     private static func collectFunDecl(e: TypedDecl, f: FuncDeclData, scope: SymbolsScope) {
-        let functionName = match(f.name) {
-            case "init" => "()"
-            case other => other
-        }
         e.ty = createFnType(f, TUnknown, scope)
-        scope.addSymbol(functionName, e)
+        scope.addSymbol(f.name, e)
         f.parameters.map { p: CjPattern => addParameterWithType(p, scope) }
-        let innerScope = scope.createSymbol(functionName, ScopeOrigin.FunctonScope(f))
+        let innerScope = scope.createSymbol(f.name, ScopeOrigin.FunctonScope(f))
         f.body.map { decl: TypedDecl => collectDecl(decl, innerScope) }
     }
 
@@ -80,7 +76,7 @@ public class CollectSignatures {
     private static func resolveParameterType(p: CjPattern, scope: SymbolsScope): Type {
         match (p) {
             case ScVariable(_, Some(anno)) => CollectTypes.resolveCjType(anno, scope)
-            case _ => throw Exception("Function parameter was noticed without an type annotation. This is a crime")
+            case _ => throw Exception("Function parameter without a type annotation is impossible")
         }
     }
 }

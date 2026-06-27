@@ -2,7 +2,7 @@ package cj2bc.codegen.state
 
 import std.collection.HashMap
 
-public class StringHashser {
+public class StringHasher {
     static let HASHES = HashMap<String, UInt32>()
     static var stringIndex = 0u32
 
@@ -23,20 +23,20 @@ public class StringHashser {
     }
 
     public static func reserveSymbols(): Unit {
-        StringHashser.getHash("()")
-        StringHashser.getHash("+")
-        StringHashser.getHash("-")
-        StringHashser.getHash("*")
-        StringHashser.getHash("/")
-        StringHashser.getHash("%")
-        StringHashser.getHash("<")
-        StringHashser.getHash("<=")
-        StringHashser.getHash("==")
-        StringHashser.getHash(">")
-        StringHashser.getHash(">=")
-        StringHashser.getHash("!=")
-        StringHashser.getHash("-unary")
-        StringHashser.getHash("!")
+        StringHasher.getHash("()")
+        StringHasher.getHash("+")
+        StringHasher.getHash("-")
+        StringHasher.getHash("*")
+        StringHasher.getHash("/")
+        StringHasher.getHash("%")
+        StringHasher.getHash("<")
+        StringHasher.getHash("<=")
+        StringHasher.getHash("==")
+        StringHasher.getHash(">")
+        StringHasher.getHash(">=")
+        StringHasher.getHash("!=")
+        StringHasher.getHash("-unary")
+        StringHasher.getHash("!")
         // TODO: Other operators
     }
 }

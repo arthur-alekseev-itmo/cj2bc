@@ -6,7 +6,7 @@ import cj2bc.bytecode.Instruction
 import cj2bc.ast.tree.*
 import cj2bc.ast.types.*
 import cj2bc.utils.todo
-import cj2bc.codegen.state.StringHashser
+import cj2bc.codegen.state.StringHasher
 
 let INT_CLASS_ID = 1u32
 let BOOL_CLASS_ID = 2u32
@@ -53,7 +53,7 @@ public class ExprCompiler {
 
     private static func compileBinaryOperatorTo(op: CjBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
         func simple(instruction: String) {
-            let operatorCall = StringHashser.getHash(instruction)
+            let operatorCall = StringHasher.getHash(instruction)
             compileExprTo(left, state)
             state.bytecode.addInstruction(GetField(operatorCall))
             compileExprTo(right, state)
@@ -83,8 +83,8 @@ public class ExprCompiler {
 
     private static func compileUnaryOpTo(op: CjUnaryOperator, expr: TypedExpr, state: CodegenState) {
         compileExprTo(expr, state)
-        let notHash = StringHashser.getHash("!")
-        let negHash = StringHashser.getHash("-unary")
+        let notHash = StringHasher.getHash("!")
+        let negHash = StringHasher.getHash("-unary")
         let instruction = match (op) {
             case Neg => negHash
             case Not => notHash
@@ -96,7 +96,7 @@ public class ExprCompiler {
     private static func compileCallTo(callee: TypedExpr, arguments: ArrayList<TypedExpr>, state: CodegenState) {
         arguments.map { argument: TypedExpr => compileExprTo(argument, state) }
         compileExprTo(callee, state)
-        let operatorCall = StringHashser.getHash("()")
+        let operatorCall = StringHasher.getHash("()")
         state.bytecode.addInstruction(GetField(operatorCall))
         state.bytecode.addInstruction(Instruction.CallObject)
     }
@@ -111,13 +111,13 @@ public class ExprCompiler {
     }
 
     private static func compileMemberAccessAsRefTo(target: TypedExpr, member: String, state: CodegenState) {
-        let memberHash = StringHashser.getHash(member) 
+        let memberHash = StringHasher.getHash(member) 
         compileExprTo(target, state)
         state.bytecode.addInstruction(GetFieldRef(memberHash))
     }
 
     private static func compileMemberAccessTo(target: TypedExpr, member: String, state: CodegenState) {
-        let memberHash = StringHashser.getHash(member)
+        let memberHash = StringHasher.getHash(member)
         compileExprTo(target, state)
         state.bytecode.addInstruction(GetField(memberHash))
     }
@@ -156,7 +156,7 @@ public class ExprCompiler {
  
     private static func compileCastTo(value: TypedExpr, ty: HierarhicalType, state: CodegenState) {
         compileExprTo(value, state)
-        let typeHash = StringHashser.getHash(ty.name)
+        let typeHash = StringHasher.getHash(ty.name)
         state.bytecode.addInstruction(Cast(typeHash))
     }
 
@@ -166,7 +166,7 @@ public class ExprCompiler {
         let decl = state.scope.findSymbol(name)
         match (decl.decl) {
             case ScClassDecl(c) => 
-                let ldclass = LoadClass(StringHashser.getHash(c.name))
+                let ldclass = LoadClass(StringHasher.getHash(c.name))
                 return state.bytecode.addInstruction(ldclass)
             case _ => ()
         }

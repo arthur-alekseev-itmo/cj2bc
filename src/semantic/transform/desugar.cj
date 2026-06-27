@@ -57,10 +57,10 @@ public class Desugar {
     }
 
     private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
+        addExplicitReturnToBlock(f.body, scope)
+
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin() && f.name == "init") {
-            f.name = "()"
-            f.functionType = FtCtor
-            ConstructorTransforms.addExplicitReturnThisToCtor(f)
+            f.functionType = FtMethod
             ConstructorTransforms.addImplicitSuperCall(f, klass, scope)
             addExplicitThisToMethod(f, scope)
             ConstructorTransforms.addFieldInitialisationToCtor(f, scope)
@@ -68,8 +68,6 @@ public class Desugar {
             transformFunctionInner(f, scope)
             return
         }
-
-        addExplicitReturnToBlock(f.body, scope)
 
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin()) {
             let isStatic = f.modifiers.any { v => v.keyword.kind == TokenKind.STATIC }

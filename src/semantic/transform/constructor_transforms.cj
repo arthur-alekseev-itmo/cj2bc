@@ -9,22 +9,6 @@ import std.collection.ArrayList
 private type Scope = SymbolsScope
 
 public class ConstructorTransforms {
-    private static func changeReturnToReturnThis(decl: TypedDecl) {
-        if (let ScRunExpr(e) <- decl.decl) {
-            if (let ScReturn(e) <- e.expr) {
-                e.expr = ScReturn(TypedExpr(ScVarRef("this"), TUnknown))
-            }
-        }
-    }
-
-    public static func addExplicitReturnThisToCtor(f: FuncDeclData): Unit {
-        // TODO: Go into exprs to ensure if blocks
-        f.body.map(changeReturnToReturnThis)
-        // TODO: Remove duplicate if detected
-        let returnThis = TypedDecl(ScRunExpr(TypedExpr(ScReturn(TypedExpr(ScVarRef("this"), TUnknown)), TNothing)), TNothing)
-        f.body.add(returnThis)
-    }
-
     private static func patternToThisExpr(pat: CjPattern) {
         match (pat) {
             case ScVariable(v, _) => ScMemberAccess(TypedExpr(ScVarRef("this"), TUnknown), v)
@@ -64,7 +48,7 @@ public class ConstructorTransforms {
         let emptyCtorTyp = TFunction(ArrayList<Type>(), TUnknown)
         let declData = FuncDeclData("init", ArrayList(), ArrayList(), ArrayList(), TUnknown)
         let emptyCtor = TypedDecl(ScFuncDecl(declData), emptyCtorTyp)
-        scope.createSymbol("()", ScopeOrigin.FunctonScope(declData))
+        scope.createSymbol("init", ScopeOrigin.FunctonScope(declData))
         klass.innerDecls.add(emptyCtor)
     }
 

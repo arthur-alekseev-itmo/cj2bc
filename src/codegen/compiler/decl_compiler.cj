@@ -9,6 +9,7 @@ import cj2bc.codegen.state.CodegenState
 import cj2bc.common.ScopeOrigin
 import cj2bc.utils.todo
 import cj2bc.ast.types.ClassType
+import cj2bc.codegen.state.StringHasher
 
 import std.collection.HashSet
 
@@ -83,6 +84,25 @@ public class DeclCompiler {
         iface.innerDecls.map { d: TypedDecl => compileDeclTo(d, true, newState) }
     }
 
+    private static func addStaticOperator(klass: ClassData, state: CodegenState) {
+        // Add static operator() to act as real ctor
+        // static operator()(InitArgs...) {
+        //     let instance = new
+        //     instance.init(InitArgs...)
+        //     return instance
+        // }
+        let offset = Utils.createFunctionHere("()", state)
+        let classNameHash = StringHasher.getHash(klass.getName())
+        let initMethodHash = StringHasher.getHash("init")
+        state.bytecode.addInstruction(New(classNameHash))
+        state.bytecode.addInstruction(Dup)
+        state.bytecode.addInstruction(GetField(initMethodHash))
+        state.bytecode.addInstruction(CallObject)
+        state.bytecode.addInstruction(Drop)
+        state.bytecode.addInstruction(Return)
+        klass.addStaticMethod("()", offset)
+    }
+
     private static func compileClassDeclTo(klass: ClassDeclData, state: CodegenState): Unit {
         let newState = state.enterSymbol(klass.name)
         let fullName = newState.scope.getPath()
@@ -90,7 +110,7 @@ public class DeclCompiler {
             return
         }
         compiledClasses.add(fullName)
-        
+
         let baseClass = match (newState.scope.findType(klass.name)) {
             case klass: ClassType => klass.getExtend()
             case _ => throw Exception("Error: Class did not have a class type")
@@ -106,6 +126,7 @@ public class DeclCompiler {
  
         let className = klass.name
         let classData = ClassData(className, baseClassFieldCount)
+        addStaticOperator(classData, state)
         state.classes.add(className, classData)
         klass.innerDecls.map { d: TypedDecl => compileDeclTo(d, true, newState) }
     }

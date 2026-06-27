@@ -9,7 +9,7 @@ import std.argopt.*
 import cj2bc.parse.CjParser
 import cj2bc.semantic.Analyzer
 import cj2bc.prettyprint.PPAst
-import cj2bc.codegen.state.StringHashser
+import cj2bc.codegen.state.StringHasher
 import cj2bc.codegen.Codegen
 import cj2bc.codegen.CodegenResult
 
@@ -41,7 +41,7 @@ main(args: Array<String>): Int64 {
         // - operator overload
         // - some functions to be builtin
         // All to be overriden in interpreter
-        StringHashser.reserveSymbols()
+        StringHasher.reserveSymbols()
         
 
         let inputFile = File(input, OpenMode.Read)
@@ -55,7 +55,7 @@ main(args: Array<String>): Int64 {
 
         if (print) {
             println(code.toString())
-            StringHashser.printStrings()
+            StringHasher.printStrings()
         }
 
         let file = code.toFile()
