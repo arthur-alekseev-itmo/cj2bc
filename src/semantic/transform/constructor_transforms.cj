@@ -34,7 +34,7 @@ public class ConstructorTransforms {
     public static func addFieldInitialisationToCtor(f: FuncDeclData, scope: Scope): Unit {
         func tryGetField(decl: TypedDecl) {
             match (decl.decl) {
-                case ScVarDecl(f, expr) => Some((f, expr))
+                case ScVarDecl(v) where v.value.isSome() => Some((v.pattern, v.value.getOrThrow()))
                 case _ => None<(CjPattern, TypedExpr)>
             }
         }

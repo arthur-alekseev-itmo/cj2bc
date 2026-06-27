@@ -25,8 +25,7 @@ public class CollectSignatures {
         match (decl.decl) { 
             case ScFuncDecl(f) => collectFunDecl(decl, f, scope)
             case ScBuiltin(_) => ()
-            case ScEmptyVarDecl(_) => ()
-            case ScVarDecl(v, expr) => collectVarDecl(decl, v, expr, scope)
+            case ScVarDecl(v) => collectVarDecl(decl, v, scope)
             case ScRunExpr(expr) => collectExpr(expr, scope)
             case ScClassDecl(klass) => collectClassDecl(klass, scope)
             case ScInterfaceDecl(iface) => collectInterfaceDecl(iface, scope)
@@ -59,7 +58,7 @@ public class CollectSignatures {
         match (p) {
             case ScVariable(name, Some(annotation)) =>
                 let paramType = CollectTypes.resolveCjType(annotation, scope)
-                let fictionalDecl = TypedDecl(ScEmptyVarDecl(p), paramType)
+                let fictionalDecl = TypedDecl(ScVarDecl(CjVarDecl(p, None, ArrayList())), paramType)
                 scope.addSymbol(name, fictionalDecl)
             case _ => throw Exception("Bad function parameter")
         }
@@ -70,11 +69,11 @@ public class CollectSignatures {
         TFunction(parameters, returnType)
     }
 
-    private static func collectVarDecl(e: TypedDecl, v: CjPattern, b: TypedExpr, scope: SymbolsScope) {
-        let name = match (v) {
+    private static func collectVarDecl(e: TypedDecl, v: CjVarDecl, scope: SymbolsScope) {
+        let name = match (v.pattern) {
             case ScVariable(name, _) => name
         }
-        collectExpr(b, scope)
+        v.value.map { v => collectExpr(v, scope) }
         scope.addSymbol(name, e) 
     }
 
@@ -84,6 +83,4 @@ public class CollectSignatures {
             case _ => throw Exception("Function parameter was noticed without an type annotation. This is a crime")
         }
     }
-
-
 }

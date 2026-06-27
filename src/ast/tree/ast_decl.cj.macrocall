@@ -7,13 +7,29 @@ import std.deriving.Derive
 
 public type TypedBlock = ArrayList<TypedDecl>
 
-@Derive[Equatable]
-public enum FunctionType {
-    | FtFunction
-    | FtMethod
-    | FtStaticMethod
-    | FtCtor
-}
+/* ===== Emitted by MacroCall @Derive in ast_decl.cj:10:1 ===== */
+/* 10.1 */public enum FunctionType {
+/* 10.2 */    | FtFunction
+/* 10.3 */    | FtMethod
+/* 10.4 */    | FtStaticMethod
+/* 10.5 */    | FtCtor
+/* 10.6 */}
+/* 10.7 */extend FunctionType <: Equatable < FunctionType > {
+/* 10.8 */    public operator func ==(other: FunctionType): Bool {
+/* 10.9 */        return match((this, other)) {
+/* 10.10 */            case(FtFunction, FtFunction) => true
+/* 10.11 */            case(FtMethod, FtMethod) => true
+/* 10.12 */            case(FtStaticMethod, FtStaticMethod) => true
+/* 10.13 */            case(FtCtor, FtCtor) => true
+/* 10.14 */            case _ => false
+/* 10.15 */        }
+/* 10.16 */    }
+/* 10.17 */    public operator func !=(other: FunctionType): Bool {
+/* 10.18 */        !(this == other)
+/* 10.19 */    }
+/* 10.20 */}
+/* 10.21 */
+/* ===== End of the Emit ===== */
 
 public class FuncDeclData {
     public let parameters: ArrayList<CjPattern>

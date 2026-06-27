@@ -18,8 +18,7 @@ public class ImplicitThisTransforms {
 
     private static func isFieldDecl(decl: TypedDecl): ArrayList<String> {
         match (decl.decl) {
-            case ScVarDecl(pat, _) => getPatternNames(pat)
-            case ScEmptyVarDecl(pat) => getPatternNames(pat)
+            case ScVarDecl(varDecl) => getPatternNames(varDecl.pattern)
             case _ => ArrayList<String>()
         }
     }
@@ -53,13 +52,10 @@ public class ImplicitThisTransforms {
         match (decl.decl) {
             case ScFuncDecl(f) => todo("func decl")
             case ScBuiltin(_) => decl 
-            case ScEmptyVarDecl(pat) => 
-                fields.remove(all: getPatternNames(pat))
-                decl
-            case ScVarDecl(pat, expr) =>
-                let newExpr = addThisToExpr(expr, fields)
-                fields.remove(all: getPatternNames(pat))
-                TypedDecl(ScVarDecl(pat, newExpr), decl.ty)
+            case ScVarDecl(varDecl) =>
+                let newExpr = varDecl.value.map { x => addThisToExpr(x, fields) }
+                fields.remove(all: getPatternNames(varDecl.pattern))
+                TypedDecl(ScVarDecl(CjVarDecl(varDecl.pattern, newExpr, varDecl.modifiers)), decl.ty)
             case ScRunExpr(expr) =>
                 TypedDecl(ScRunExpr(addThisToExpr(expr, fields)), decl.ty)
             case ScClassDecl(clazz) => todo("inner class")

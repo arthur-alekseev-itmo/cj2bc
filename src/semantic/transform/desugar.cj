@@ -1,5 +1,7 @@
 package cj2bc.semantic.transform
 
+import std.ast.TokenKind
+
 import cj2bc.ast.tree.*
 import cj2bc.ast.types.*
 import cj2bc.common.SymbolsScope
@@ -43,7 +45,8 @@ public class Desugar {
 
     private static func addExplicitThisToMethod(f: FuncDeclData, scope: Scope) {
         f.parameters.add(ScVariable("this", None), at: 0)
-        scope.enterSymbol(f.name).addSymbol("this", TypedDecl(ScEmptyVarDecl(ScVariable("this", None)), TUnknown))
+        let thisDecl = ScVarDecl(CjVarDecl(ScVariable("this", None), None, ArrayList()))
+        scope.enterSymbol(f.name).addSymbol("this", TypedDecl(thisDecl, TUnknown))
     }
 
     private static func transformFunctionInner(f: FuncDeclData, scope: Scope): Unit {
@@ -69,7 +72,8 @@ public class Desugar {
         addExplicitReturnToBlock(f.body, scope)
 
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin()) {
-            f.functionType = FtMethod
+            let isStatic = f.modifiers.any { v => v.keyword.kind == TokenKind.STATIC }
+            f.functionType = if (isStatic) { FtStaticMethod } else { FtMethod }
             addExplicitThisToMethod(f, scope)
             ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
             transformFunctionInner(f, scope)

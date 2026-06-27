@@ -9,12 +9,16 @@ public enum MemberType {
     | MtField
     | MtCtor
     | MtMethod
+    | MtStaticMethod
+    | MtStaticField
 
     public func toUInt32(): UInt32 {
         match (this) {
             case MtField => 0x1
             case MtMethod => 0x2
-            case MtCtor => 0x4
+            case MtCtor => 0x3
+            case MtStaticMethod => 0x4
+            case MtStaticField => 0x5
         }
     }
 }
@@ -43,15 +47,22 @@ public class ClassData <: ToString {
     private let name: String
     private let members: ArrayList<MemberData>
     private var fieldCount: UInt32
+    private var staticFieldCount: UInt32
 
-    public init(name: String) {
-        this.fieldCount = 0
+    public init(name: String, reservedFields: UInt32) {
+        this.fieldCount = reservedFields
+        this.staticFieldCount = 0
         this.name = name
         this.members = ArrayList<MemberData>()
     }
 
     public func addMethod(name: String, offset: UInt32): Unit {
         let member = MemberData(name, MtMethod, offset)
+        members.add(member)
+    }
+
+    public func addStaticMethod(name: String, offset: UInt32): Unit {
+        let member = MemberData(name, MtStaticMethod, offset)
         members.add(member)
     }
 
@@ -68,6 +79,20 @@ public class ClassData <: ToString {
     public func addNextField(name: String): Unit {
         addField(name, fieldCount)
         fieldCount++
+    }
+
+    public func addStaticField(name: String, offset: UInt32): Unit {
+        let member = MemberData(name, MtStaticField, offset)
+        members.add(member)
+    }
+
+    public func addNextStaticField(name: String): Unit {
+        addStaticField(name, staticFieldCount)
+        staticFieldCount++
+    }
+
+    public func getFieldCount(): UInt32 {
+        fieldCount
     }
 
     public func toString(): String {

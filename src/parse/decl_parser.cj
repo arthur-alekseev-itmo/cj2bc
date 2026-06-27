@@ -49,9 +49,10 @@ public class CjDeclParser {
         // TODO: I dunno when can I use pattern, and when I can use identifier
         // let pattern = translatePattern(varDecl.pattern)
         let pattern = ScVariable(varDecl.identifier.value, None)
+        let modifiers = varDecl.modifiers
         let expr = CjExprParser.translateExpr(varDecl.expr)
-        let decl = ScVarDecl(pattern, expr)
-        TypedDecl(decl, TUnknown)
+        let decl = CjVarDecl(pattern, expr, modifiers)
+        TypedDecl(ScVarDecl(decl), TUnknown)
     }
 
     private static func translateClassDecl(classDecl: ClassDecl) {

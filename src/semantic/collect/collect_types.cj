@@ -56,8 +56,7 @@ public class CollectTypes {
         match (decl.decl) {
             case ScBuiltin(_) => ()
             case ScFuncDecl(f) => registerFunction(f, scope)
-            case ScEmptyVarDecl(v) => todo()
-            case ScVarDecl(v, b) => ()
+            case ScVarDecl(_) => ()
             case ScClassDecl(c) => registerClassDecl(decl, c, scope)
             case ScInterfaceDecl(i) => registerInterfaceDecl(decl, i, scope)
             case ScRunExpr(r) => registerRunExpr(r, scope)
@@ -111,8 +110,7 @@ public class CollectTypes {
         match (decl.decl) {
             case ScBuiltin(_) => ()
             case ScFuncDecl(f) => connectFuncDecl(f, scope)
-            case ScEmptyVarDecl(v) => ()
-            case ScVarDecl(v, b) => ()
+            case ScVarDecl(_) => ()
             case ScClassDecl(c) => connectClassDecl(c, scope)
             case ScInterfaceDecl(i) => connectInterfaceDecl(i, scope)
             case ScRunExpr(_) => ()

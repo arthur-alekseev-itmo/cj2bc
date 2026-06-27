@@ -183,9 +183,11 @@ public class Inference {
         // If not, make all return exprs unknwon to box them
     }
 
-    private static func inferVarDecl(decl: TypedDecl, expr: TypedExpr, ctx: Ctx) {
-        inferExpr(expr, ctx)
-        decl.ty = expr.ty
+    private static func inferVarDecl(decl: TypedDecl, varDecl: CjVarDecl, ctx: Ctx) {
+        varDecl.value.map { v =>
+            inferExpr(v, ctx)
+            decl.ty = v.ty
+        }
     }
 
     private static func inferClassDecl(decl: ClassDeclData, ctx: Ctx) {
@@ -207,8 +209,7 @@ public class Inference {
         match (decl.decl) {
             case ScFuncDecl(f) => inferFuncDecl(decl, f, ctx)
             case ScBuiltin(_) => ()
-            case ScEmptyVarDecl(_) => todo()
-            case ScVarDecl(v, b) => inferVarDecl(decl, b, ctx)
+            case ScVarDecl(v) => inferVarDecl(decl, v, ctx)
             case ScClassDecl(c) => inferClassDecl(c, ctx)
             case ScInterfaceDecl(i) => inferInterfaceDecl(i, ctx)
             case ScRunExpr(e) => inferRunExpr(decl, e, ctx) 
