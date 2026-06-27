@@ -18,6 +18,7 @@ public class Desugar {
 
     private static func transformClassDecl(c: ClassDeclData, scope: Scope): Unit {
         let newScope = scope.enterSymbol(c.name)
+        ConstructorTransforms.addClinit(c, newScope)
         ConstructorTransforms.addImplcitCtor(c, newScope)
         c.innerDecls.map { d: TypedDecl => transformDecl(d, newScope) } 
     }

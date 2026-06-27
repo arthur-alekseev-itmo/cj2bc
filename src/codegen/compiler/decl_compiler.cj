@@ -10,6 +10,7 @@ import cj2bc.common.ScopeOrigin
 import cj2bc.utils.todo
 import cj2bc.ast.types.ClassType
 import cj2bc.codegen.state.StringHasher
+import cj2bc.bytecode.Instruction
 
 import std.collection.HashSet
 
@@ -143,6 +144,7 @@ public class DeclCompiler {
     }
 
     public static func compileProgramTo(program: CjProgram, state: CodegenState): Unit {
+        state.bytecode.addInstruction(Instruction.Init)
         program.map { decl: TypedDecl => compileDeclTo(decl, true, state) }
     }
 }

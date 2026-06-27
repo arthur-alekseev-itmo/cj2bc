@@ -61,6 +61,7 @@ public enum Instruction <: ToString {
     | Unbox
     | LoadClass(UInt32)
     | Cast(UInt32)
+    | Init
 
     private func addCommand0To(tag: Byte, target: ArrayList<Byte>): Unit {
         target.add(tag)
@@ -133,6 +134,7 @@ public enum Instruction <: ToString {
             case Unbox => addCommand0To(0x33, target)
             case LoadClass(x) => addCommand32To(0x34, x, target)
             case Cast(x) => addCommand32To(0x35, x, target)
+            case Init => addCommand0To(0x36, target)
         }
     }
 
@@ -194,6 +196,7 @@ public enum Instruction <: ToString {
             case Unbox => "Unbox"
             case LoadClass(x) => "LoadClass ${x}"
             case Cast(x) => "Cast ${x}"
+            case Init => "Init"
         }
     }
 }

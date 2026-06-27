@@ -6,6 +6,9 @@ import cj2bc.common.SymbolsScope
 import cj2bc.common.ScopeOrigin
 import std.collection.ArrayList
 
+import std.ast.Modifier
+import std.ast.TokenKind
+
 private type Scope = SymbolsScope
 
 public class ConstructorTransforms {
@@ -15,10 +18,16 @@ public class ConstructorTransforms {
         }
     }
 
-    public static func addFieldInitialisationToCtor(f: FuncDeclData, scope: Scope): Unit {
+    public static func addFieldInitialisationToCtor(f: FuncDeclData, scope: Scope, takeStatics!: Bool = false): Unit {
         func tryGetField(decl: TypedDecl) {
             match (decl.decl) {
-                case ScVarDecl(v) where v.value.isSome() => Some((v.pattern, v.value.getOrThrow()))
+                case ScVarDecl(v) where v.value.isSome() =>
+                    let isStatic = v.modifiers.any { m: Modifier => m.keyword.kind == TokenKind.STATIC }
+                    if (takeStatics == isStatic) {
+                        Some((v.pattern, v.value.getOrThrow()))
+                    } else {
+                        None<(CjPattern, TypedExpr)>
+                    }
                 case _ => None<(CjPattern, TypedExpr)>
             }
         }
@@ -44,7 +53,6 @@ public class ConstructorTransforms {
         if (hasConstructors) {
             return
         }
-        println(scope.getPath())
         let emptyCtorTyp = TFunction(ArrayList<Type>(), TUnknown)
         let declData = FuncDeclData("init", ArrayList(), ArrayList(), ArrayList(), TUnknown)
         let emptyCtor = TypedDecl(ScFuncDecl(declData), emptyCtorTyp)
@@ -74,5 +82,15 @@ public class ConstructorTransforms {
         }
         let explicitCall = TypedDecl(ScRunExpr(TypedExpr(ScCall(TypedExpr(ScVarRef("super"), TUnknown), ArrayList()), TUnknown)), TUnknown)
         ctor.body.add(explicitCall, at:0)
+    }
+
+    public static func addClinit(klass: ClassDeclData, scope: Scope): Unit {
+        let clinitType = TFunction(ArrayList<Type>(), TUnknown)
+        let clinitDeclData = FuncDeclData("$clinit", ArrayList(), ArrayList(), ArrayList(), TUnknown)
+        let clinit = TypedDecl(ScFuncDecl(clinitDeclData), clinitType)
+        clinitDeclData.functionType = FtStaticMethod
+        scope.createSymbol("$clinit", ScopeOrigin.FunctonScope(clinitDeclData))
+        addFieldInitialisationToCtor(clinitDeclData, scope, takeStatics: true)
+        klass.innerDecls.add(clinit)
     }
 }

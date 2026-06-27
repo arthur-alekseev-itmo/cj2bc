@@ -38,5 +38,6 @@ public class StringHasher {
         StringHasher.getHash("-unary")
         StringHasher.getHash("!")
         // TODO: Other operators
+        StringHasher.getHash("$clinit")
     }
 }
