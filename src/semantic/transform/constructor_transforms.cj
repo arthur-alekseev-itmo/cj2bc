@@ -87,7 +87,7 @@ public class ConstructorTransforms {
     private static func fixSuperCallInDecl(decl: TypedDecl, _: Scope): Unit {
         if (let ScRunExpr(scCall) <- decl.decl) {
             if (let ScCall(superVar, args) <- scCall.expr) {
-                if (let ScVarRef(x) <- superVar.expr) {
+                if (let ScVarRef("super") <- superVar.expr) {
                     let initMethodExpr = TypedExpr(ScMemberAccess(superVar, "init"), TUnknown)
                     let initCall = ScRunExpr(TypedExpr(ScCall(initMethodExpr, args), TUnknown))
                     decl.decl = initCall

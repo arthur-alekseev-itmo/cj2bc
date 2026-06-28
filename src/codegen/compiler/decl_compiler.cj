@@ -129,6 +129,7 @@ public class DeclCompiler {
  
         let className = klass.name
         let classData = ClassData(className, baseClassFieldCount)
+        baseClass.map { x: ClassType => classData.setBaseName(x.name) }
         addStaticOperator(classData, state)
         state.classes.add(className, classData)
         klass.innerDecls.map { d: TypedDecl => compileDeclTo(d, true, newState) }

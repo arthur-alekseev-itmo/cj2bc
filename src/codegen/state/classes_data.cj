@@ -45,6 +45,7 @@ public class MemberData <: ToString {
 
 public class ClassData <: ToString {
     private let name: String
+    private var baseName: ?String
     private let members: ArrayList<MemberData>
     private var fieldCount: UInt32
     private var staticFieldCount: UInt32
@@ -53,8 +54,13 @@ public class ClassData <: ToString {
         name
     }
 
+    public func setBaseName(baseName: String): Unit {
+        this.baseName = Some(baseName)
+    }
+
     public init(name: String, reservedFields: UInt32) {
         this.fieldCount = reservedFields
+        this.baseName = None
         this.staticFieldCount = 0
         this.name = name
         this.members = ArrayList<MemberData>()
@@ -101,12 +107,13 @@ public class ClassData <: ToString {
 
     public func toString(): String {
         let memberStrings = members.map { x => "- ${x}" }.toArray()
+        let ext = baseName.map { x => " <: ${x}"} ?? ""
         let memberList = String.join(memberStrings, delimiter:"\n")
-        "Class: ${name}\n${memberList}\n"
+        "Class: ${name}${ext}\n${memberList}\n"
     }
 
     public func toClassHeader(): BytecodeClassHeader {
-        let header = BytecodeClassHeader(StringHasher.getHash(name), 0)
+        let header = BytecodeClassHeader(StringHasher.getHash(name), baseName.map(StringHasher.getHash) ?? 0)
         members.map { m: MemberData => header.addMember(m.toMemberEntry()) }
         header
     }
