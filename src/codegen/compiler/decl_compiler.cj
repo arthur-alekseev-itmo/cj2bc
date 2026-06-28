@@ -96,10 +96,12 @@ public class DeclCompiler {
         let classNameHash = StringHasher.getHash(klass.getName())
         let initMethodHash = StringHasher.getHash("init")
         state.bytecode.addInstruction(New(classNameHash))
-        state.bytecode.addInstruction(Dup)
+        state.bytecode.addInstruction(StoreLocal(0))
+        state.bytecode.addInstruction(LoadLocal(0))
         state.bytecode.addInstruction(GetField(initMethodHash))
         state.bytecode.addInstruction(CallObject)
         state.bytecode.addInstruction(Drop)
+        state.bytecode.addInstruction(LoadLocal(0))
         state.bytecode.addInstruction(Return)
         klass.addStaticMethod("()", offset)
     }

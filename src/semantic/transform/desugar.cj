@@ -60,8 +60,6 @@ public class Desugar {
     }
 
     private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
-        
-
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin() && f.name == "init") {
             f.functionType = FtMethod
             ConstructorTransforms.addImplicitSuperCall(f, klass, scope)
