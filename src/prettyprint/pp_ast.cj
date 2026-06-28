@@ -140,9 +140,9 @@ public class PPAst {
                 "${offset}<builtin ${n}>"
             case ScVarDecl(v) => 
                 let pattern = patternToString(v.pattern)
-                let expr = v.value.map { v => " = " + exprToString(v, offset) }
+                let expr = v.value.map({ v => " = " + exprToString(v, offset) }).getOrDefault({ => ""})
                 let ty = decl.ty |> typeToString
-                "${offset}let ${pattern}[${ty}]"
+                "${offset}let ${pattern}[${ty}]${expr}"
             case ScFuncDecl(f) =>
                 let paramStrings = f.parameters.map(patternToString)
                 let params = String.join(paramStrings.toArray(), delimiter:", ")

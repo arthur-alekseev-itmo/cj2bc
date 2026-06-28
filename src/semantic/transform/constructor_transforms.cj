@@ -84,6 +84,30 @@ public class ConstructorTransforms {
         ctor.body.add(explicitCall, at:0)
     }
 
+    private static func fixSuperCallInDecl(decl: TypedDecl, _: Scope): Unit {
+        if (let ScRunExpr(scCall) <- decl.decl) {
+            if (let ScCall(superVar, args) <- scCall.expr) {
+                if (let ScVarRef(x) <- superVar.expr) {
+                    let initMethodExpr = TypedExpr(ScMemberAccess(superVar, "init"), TUnknown)
+                    let initCall = ScRunExpr(TypedExpr(ScCall(initMethodExpr, args), TUnknown))
+                    decl.decl = initCall
+                } 
+            }
+        }
+    }
+
+    // Fix: super(...Args) -> super.init(...Args)
+    public static func fixSuperCallInCtor(ctor: FuncDeclData, scope: Scope): Unit {
+        let fDecl = { x: TypedDecl => fixSuperCallInDecl(x, scope) }
+        func fExpr(e: TypedExpr): Unit {
+            AstUtils.iterExpr(e, fExpr, fDecl)
+        }
+        ctor.body.map { decl: TypedDecl =>
+            fDecl(decl)
+            AstUtils.iterDecl(decl, fExpr, fDecl)
+        }
+    }
+
     public static func addClinit(klass: ClassDeclData, scope: Scope): Unit {
         let clinitType = TFunction(ArrayList<Type>(), TUnknown)
         let clinitDeclData = FuncDeclData("$clinit", ArrayList(), ArrayList(), ArrayList(), TUnknown)

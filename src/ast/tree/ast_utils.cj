@@ -1,6 +1,17 @@
 package cj2bc.ast.tree
 
 public class AstUtils {
+    public static func iterDecl(decl: TypedDecl, fExpr: (TypedExpr) -> Unit, fDecl: (TypedDecl) -> Unit): Unit {
+        match (decl.decl) {
+            case ScFuncDecl(f) => f.body.map(fDecl)
+            case ScBuiltin(_) => ()
+            case ScVarDecl(v) => v.value.map(fExpr)
+            case ScRunExpr(e) => fExpr(e)
+            case ScClassDecl(c) => c.innerDecls.map(fDecl)
+            case ScInterfaceDecl(i) => i.innerDecls.map(fDecl)
+        }
+    }
+
     public static func iterExpr(expr: TypedExpr, fExpr: (TypedExpr) -> Unit, fDecl: (TypedDecl) -> Unit): Unit {
         match (expr.expr) {
             case ScConstUnit => ()

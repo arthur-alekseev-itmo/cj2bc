@@ -9,7 +9,6 @@ import std.collection.ArrayList
 public class ExprTransforms {
 
     public static func transformVarRef(e: TypedExpr, name: String, scope: SymbolsScope): Unit {
-        println("Transforming ${name} ${scope.getName()}")
         if (let ScopeOrigin.ClassScope(decl) <- scope.getOrigin()) {
             if (name == "super") {
                 let superTy = decl.ty

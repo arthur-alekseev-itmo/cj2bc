@@ -76,7 +76,7 @@ public enum CjDecl {
 }
 
 public class TypedDecl {
-    public let decl: CjDecl
+    public var decl: CjDecl
     public var ty: Type
 
     public init(decl: CjDecl, ty: Type) {

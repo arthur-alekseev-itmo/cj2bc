@@ -30,6 +30,8 @@ public class Desugar {
     private static func addExplicitReturnToBlock(block: TypedBlock, _: Scope) {
         let length = block.size
         if (length == 0) {
+            let unit = TypedExpr(ScConstUnit, TBasic(TUnit))
+            block.add(makeReturn(unit))
             return
         }
         match (block[length - 1].decl) {
@@ -58,17 +60,21 @@ public class Desugar {
     }
 
     private static func transformFuncDecl(_: TypedDecl, f: FuncDeclData, scope: Scope): Unit {
-        addExplicitReturnToBlock(f.body, scope)
+        
 
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin() && f.name == "init") {
             f.functionType = FtMethod
             ConstructorTransforms.addImplicitSuperCall(f, klass, scope)
+            ConstructorTransforms.fixSuperCallInCtor(f, scope)
             addExplicitThisToMethod(f, scope)
             ConstructorTransforms.addFieldInitialisationToCtor(f, scope)
             ImplicitThisTransforms.addImplicitThisToFunc(f, klass, scope)
             transformFunctionInner(f, scope)
+            addExplicitReturnToBlock(f.body, scope)
             return
         }
+
+        addExplicitReturnToBlock(f.body, scope)
 
         if (let ScopeOrigin.ClassScope(klass) <- scope.getOrigin()) {
             let isStatic = f.modifiers.any { v => v.keyword.kind == TokenKind.STATIC }
