@@ -95,6 +95,7 @@ public class DeclCompiler {
         let offset = Utils.createFunctionHere("()", state)
         let classNameHash = StringHasher.getHash(klass.getName())
         let initMethodHash = StringHasher.getHash("init")
+        state.bytecode.addInstruction(Drop) // Drop init ref
         state.bytecode.addInstruction(New(classNameHash))
         state.bytecode.addInstruction(StoreLocal(0))
         state.bytecode.addInstruction(LoadLocal(0))

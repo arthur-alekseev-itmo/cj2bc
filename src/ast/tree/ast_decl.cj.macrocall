@@ -1,0 +1,102 @@
+package cj2bc.ast.tree
+
+import cj2bc.ast.types.*
+import std.collection.ArrayList
+import std.ast.Modifier
+import std.deriving.Derive
+
+public type TypedBlock = ArrayList<TypedDecl>
+
+/* ===== Emitted by MacroCall @Derive in ast_decl.cj:10:1 ===== */
+/* 10.1 */public enum FunctionType {
+/* 10.2 */    | FtFunction
+/* 10.3 */    | FtMethod
+/* 10.4 */    | FtStaticMethod
+/* 10.5 */    | FtCtor
+/* 10.6 */}
+/* 10.7 */extend FunctionType <: Equatable < FunctionType > {
+/* 10.8 */    public operator func ==(other: FunctionType): Bool {
+/* 10.9 */        return match((this, other)) {
+/* 10.10 */            case(FtFunction, FtFunction) => true
+/* 10.11 */            case(FtMethod, FtMethod) => true
+/* 10.12 */            case(FtStaticMethod, FtStaticMethod) => true
+/* 10.13 */            case(FtCtor, FtCtor) => true
+/* 10.14 */            case _ => false
+/* 10.15 */        }
+/* 10.16 */    }
+/* 10.17 */    public operator func !=(other: FunctionType): Bool {
+/* 10.18 */        !(this == other)
+/* 10.19 */    }
+/* 10.20 */}
+/* 10.21 */
+/* ===== End of the Emit ===== */
+
+public class FuncDeclData {
+    public let parameters: ArrayList<CjPattern>
+    public var body: TypedBlock
+    public var name: String
+    public var resultType: Type
+    public let modifiers: ArrayList<Modifier>
+    public var functionType: FunctionType
+
+    public init(name: String, parameters: ArrayList<CjPattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, resultType: Type) { 
+        this.functionType = FtFunction
+        this.parameters = parameters
+        this.body = body
+        this.name = name
+        this.resultType = resultType
+        this.modifiers = modifiers
+    }
+}
+
+open public class InterfaceDeclData {
+    public let innerDecls: ArrayList<TypedDecl>
+    public let name: String
+    public let superTypes: ArrayList<CjType>
+    public var ty: ?HierarhicalType = None
+
+    public init(name: String, superTypes: ArrayList<CjType>, innerDecls: ArrayList<TypedDecl>) {
+        this.name = name
+        this.innerDecls = innerDecls
+        this.superTypes = superTypes
+    }
+}
+
+public class CjVarDecl {
+    public let pattern: CjPattern
+    public let value: ?TypedExpr
+    public let modifiers: ArrayList<Modifier>
+
+    public init(pattern: CjPattern, value: ?TypedExpr, modifiers: ArrayList<Modifier>) {
+        this.pattern = pattern
+        this.value = value
+        this.modifiers = modifiers
+    }
+}
+
+public class ClassDeclData <: InterfaceDeclData {
+    public init(name: String, superTypes: ArrayList<CjType>, innerDecls: ArrayList<TypedDecl>) {
+        super(name, superTypes, innerDecls)
+    }
+}
+
+public type CjProgram = ArrayList<TypedDecl>
+
+public enum CjDecl {
+    | ScFuncDecl(FuncDeclData)
+    | ScBuiltin(String)
+    | ScVarDecl(CjVarDecl)
+    | ScRunExpr(TypedExpr)
+    | ScClassDecl(ClassDeclData)
+    | ScInterfaceDecl(InterfaceDeclData)
+}
+
+public class TypedDecl {
+    public var decl: CjDecl
+    public var ty: Type
+
+    public init(decl: CjDecl, ty: Type) {
+        this.decl = decl
+        this.ty = ty
+    }
+}
