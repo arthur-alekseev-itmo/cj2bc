@@ -5,10 +5,10 @@ import std.ast.TokenKind
 
 import cj2bc.codegen.state.ClassData
 import cj2bc.ast.tree.*
+import cj2bc.ast.types.*
 import cj2bc.codegen.state.CodegenState
 import cj2bc.common.ScopeOrigin
 import cj2bc.utils.todo
-import cj2bc.ast.types.ClassType
 import cj2bc.codegen.state.StringHasher
 import cj2bc.bytecode.Instruction
 
@@ -123,6 +123,7 @@ public class DeclCompiler {
             let baseDecl = state.scope.findSymbol(base.name)
             compileDeclTo(baseDecl, true, state)
         }
+
         let baseClassFieldCount = baseClass.map { base: ClassType =>
             let baseClassData = state.classes[base.name]
             baseClassData.getFieldCount()
