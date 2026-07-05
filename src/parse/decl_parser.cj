@@ -18,8 +18,9 @@ public class CjDeclParser {
         let body = CjParser.translateBlock(funcDecl.block)
         let funcName = funcDecl.identifier.value
         let modifiers = funcDecl.modifiers
-        let CjDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers, TNothing))
-        TypedDecl(CjDecl, TUnknown)
+        let funcType = FunctionTypeData(ArrayList<Type>(), TUnknown)
+        let CjDecl = ScFuncDecl(FuncDeclData(funcName, parameters, body, modifiers, funcType))
+        TypedDecl(CjDecl, TFunction(funcType))
     }
 
     private static func translateMainDecl(mainDecl: MainDecl) {

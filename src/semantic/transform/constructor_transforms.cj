@@ -53,9 +53,9 @@ public class ConstructorTransforms {
         if (hasConstructors) {
             return
         }
-        let emptyCtorTyp = TFunction(ArrayList<Type>(), TUnknown)
-        let declData = FuncDeclData("init", ArrayList(), ArrayList(), ArrayList(), TUnknown)
-        let emptyCtor = TypedDecl(ScFuncDecl(declData), emptyCtorTyp)
+        let emptyCtorTyp = FunctionTypeData(ArrayList<Type>(), TUnknown)
+        let declData = FuncDeclData("init", ArrayList(), ArrayList(), ArrayList(), emptyCtorTyp)
+        let emptyCtor = TypedDecl(ScFuncDecl(declData), TFunction(emptyCtorTyp))
         scope.createSymbol("init", ScopeOrigin.FunctonScope(declData))
         klass.innerDecls.add(emptyCtor)
     }
@@ -109,9 +109,9 @@ public class ConstructorTransforms {
     }
 
     public static func addClinit(klass: ClassDeclData, scope: Scope): Unit {
-        let clinitType = TFunction(ArrayList<Type>(), TUnknown)
-        let clinitDeclData = FuncDeclData("$clinit", ArrayList(), ArrayList(), ArrayList(), TUnknown)
-        let clinit = TypedDecl(ScFuncDecl(clinitDeclData), clinitType)
+        let clinitType = FunctionTypeData(ArrayList<Type>(), TUnknown)
+        let clinitDeclData = FuncDeclData("$clinit", ArrayList(), ArrayList(), ArrayList(), clinitType)
+        let clinit = TypedDecl(ScFuncDecl(clinitDeclData), TFunction(clinitType))
         clinitDeclData.functionType = FtStaticMethod
         scope.createSymbol("$clinit", ScopeOrigin.FunctonScope(clinitDeclData))
         addFieldInitialisationToCtor(clinitDeclData, scope, takeStatics: true)

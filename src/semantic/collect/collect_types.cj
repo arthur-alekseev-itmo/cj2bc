@@ -135,7 +135,9 @@ public class CollectTypes {
             case StPrimitive(StUnit) => TBasic(TUnit)
             case StPrimitive(StInt64) => TBasic(TInt64)
             case StRefType(ref) => resolveHierarhicalType(scope.findType(ref.name)) 
-            case StFuncType(f) => TFunction(f.parameters.map { p => resolveCjType(p, scope) }, resolveCjType(f.result, scope))
+            case StFuncType(f) => TFunction(
+                FunctionTypeData(f.parameters.map { p => resolveCjType(p, scope) }, resolveCjType(f.result, scope))
+            )
         }
     }
 }

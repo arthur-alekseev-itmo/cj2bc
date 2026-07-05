@@ -1,6 +1,7 @@
 package cj2bc.codegen.compiler
 
 import cj2bc.codegen.state.CodegenState
+import cj2bc.common.ScopeOrigin
 import std.collection.ArrayList
 import cj2bc.bytecode.Instruction
 import cj2bc.ast.tree.*
@@ -24,6 +25,8 @@ public class ExprCompiler {
     }
 
     private static func addBoxingForSimpleTy(typeFrom: Type, typeTo: Type, state: CodegenState) {
+        return ()
+
         match ((typeFrom, typeTo)) {
             case (TBasic(_), TBasic(_)) => ()
             case (TBasic(x), _) => state.bytecode.addInstruction(Instruction.Box(getBasicTypeIndex(x)))
@@ -98,27 +101,37 @@ public class ExprCompiler {
     }
 
     private static func compileBinaryOperatorForPrimitiveTo(op: CjBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
+        func simple(instruction: Instruction) {
+            compileExprTo(left, state)
+            compileExprTo(right, state)
+            state.bytecode.addInstruction(instruction)
+        }
+        
         match (op) {
-            case Add => state.bytecode.addInstruction(Instruction.Add)
-            case Sub => state.bytecode.addInstruction(Instruction.Sub)
-            case Mul => state.bytecode.addInstruction(Instruction.Mul)
-            case Div => state.bytecode.addInstruction(Instruction.Div)
-            case Mod => state.bytecode.addInstruction(Instruction.Mod)
-            case Eq => state.bytecode.addInstruction(Instruction.Eq)
-            case Neq => state.bytecode.addInstruction(Instruction.Neq)
-            case Le => state.bytecode.addInstruction(Instruction.Le)
-            case Lt => state.bytecode.addInstruction(Instruction.Lt)
-            case Ge => state.bytecode.addInstruction(Instruction.Ge)
-            case Gt => state.bytecode.addInstruction(Instruction.Gt)
-            case BitXor => state.bytecode.addInstruction(Instruction.BitXor)
-            case BitAnd => state.bytecode.addInstruction(Instruction.BitAnd)
-            case BitOr => state.bytecode.addInstruction(Instruction.BitOr)
+            case Add => simple(Instruction.Add)
+            case Sub => simple(Instruction.Sub)
+            case Mul => simple(Instruction.Mul)
+            case Div => simple(Instruction.Div)
+            case Mod => simple(Instruction.Mod)
+            case Eq => simple(Instruction.Eq)
+            case Neq => simple(Instruction.Neq)
+            case Le => simple(Instruction.Le)
+            case Lt => simple(Instruction.Lt)
+            case Ge => simple(Instruction.Ge)
+            case Gt => simple(Instruction.Gt)
+            case BitXor => simple(Instruction.BitXor)
+            case BitAnd => simple(Instruction.BitAnd)
+            case BitOr => simple(Instruction.BitOr)
             case And => compileIfThenElseTo(left, right, TypedExpr(ScConstBool(false), TBasic(TBool)), state)
             case Or => compileIfThenElseTo(left, TypedExpr(ScConstBool(true), TBasic(TBool)), right, state)
         }
     }
 
     private static func compileBinaryOperatorTo(op: CjBinaryOperator, left: TypedExpr, right: TypedExpr, state: CodegenState) {
+        // TEST CODE FOR DOING ANYTHING WITHOUT ANY BOXING
+        compileBinaryOperatorForPrimitiveTo(op, left, right, state)
+        return ()
+
         match ((left.ty, right.ty)) {
             case (TBasic(x), TBasic(y)) =>
                 // No unboxing and raw operator
@@ -156,7 +169,10 @@ public class ExprCompiler {
     }
 
     private static func compileUnaryOpTo(op: CjUnaryOperator, expr: TypedExpr, state: CodegenState) {
-       compileExprTo(expr, state)
+        // TEST CODE FOR NO BOXING
+        compileExprTo(expr, state)
+        compileUnaryOpForPrimitiveTo(op, state)
+        return ()
         match (expr.ty) {
             case TBasic(x) => compileUnaryOpForPrimitiveTo(op, state)
             case _ => compileUnaryOpAsMethodCallTo(op, state)
@@ -164,13 +180,12 @@ public class ExprCompiler {
     }
 
     private static func compileCallTo(callee: TypedExpr, arguments: ArrayList<TypedExpr>, state: CodegenState) {
-        let parameterTypes = match (callee.ty) {
-            case TFunction(parameters, out) => parameters
-            case x => todo("While calling function, function had type: ${PPType.typeToString(x)}")
-        }
-        arguments.zip(parameterTypes).map { pair: (TypedExpr, Type) => 
-            compileExprTo(pair[0], state)
-            addBoxingForSimpleTy(pair[0].ty, pair[1], state)
+        arguments.map { arg: TypedExpr => 
+            compileExprTo(arg, state)
+            // Current strat: do not box anything
+            // Will break if used with generics maybe?
+            // If strat were to box add this line
+            // addBoxingForSimpleTy(arg.ty, TUnknown, state)
         }
         compileExprTo(callee, state)
         let operatorCall = StringHasher.getHash("()")
@@ -229,6 +244,8 @@ public class ExprCompiler {
 
     private static func compileReturnTo(returnExpr: TypedExpr, state: CodegenState) {
         compileExprTo(returnExpr, state)
+        // TODO: Currently needs boxing before any return
+        addBoxingForSimpleTy(returnExpr.ty, TUnknown, state)
         state.bytecode.addInstruction(Return)
     }
  

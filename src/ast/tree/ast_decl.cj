@@ -19,16 +19,16 @@ public class FuncDeclData {
     public let parameters: ArrayList<CjPattern>
     public var body: TypedBlock
     public var name: String
-    public var resultType: Type
     public let modifiers: ArrayList<Modifier>
+    public var typ: FunctionTypeData
     public var functionType: FunctionType
 
-    public init(name: String, parameters: ArrayList<CjPattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, resultType: Type) { 
+    public init(name: String, parameters: ArrayList<CjPattern>, body: TypedBlock, modifiers: ArrayList<Modifier>, typ: FunctionTypeData) { 
         this.functionType = FtFunction
         this.parameters = parameters
         this.body = body
+        this.typ = typ
         this.name = name
-        this.resultType = resultType
         this.modifiers = modifiers
     }
 }

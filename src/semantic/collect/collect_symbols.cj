@@ -43,7 +43,9 @@ public class CollectSignatures {
     }
 
     private static func collectFunDecl(e: TypedDecl, f: FuncDeclData, scope: SymbolsScope) {
-        e.ty = createFnType(f, TUnknown, scope)
+        let typeData = createFnType(f, TUnknown, scope)
+        f.typ = typeData
+        e.ty = TFunction(typeData)
         scope.addSymbol(f.name, e)
         f.parameters.map { p: CjPattern => addParameterWithType(p, scope) }
         let innerScope = scope.createSymbol(f.name, ScopeOrigin.FunctonScope(f))
@@ -62,7 +64,7 @@ public class CollectSignatures {
 
     private static func createFnType(f: FuncDeclData, returnType: Type, scope: SymbolsScope) {
         let parameters = f.parameters.map { p: CjPattern => resolveParameterType(p, scope) }
-        TFunction(parameters, returnType)
+        FunctionTypeData(parameters, returnType)
     }
 
     private static func collectVarDecl(e: TypedDecl, v: CjVarDecl, scope: SymbolsScope) {

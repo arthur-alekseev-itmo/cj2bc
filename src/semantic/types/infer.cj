@@ -7,6 +7,8 @@ import std.collection.ArrayList
 import cj2bc.ast.types.*
 import cj2bc.common.SymbolsScope
 
+import cj2bc.prettyprint.PPType
+
 private class InferContext {
     let parent: ?InferContext
     let returnedTypes: ArrayList<Type>
@@ -53,18 +55,30 @@ public class Inference {
     public static func infer(program: CjProgram, scope: SymbolsScope): Unit {
         let ctx = InferContext(scope)
         // TODO: Better builtins
-        ctx.addSymbol("println", TypedDecl(ScBuiltin("println"), TFunction(ArrayList([TBasic(TInt64)]), TBasic(TUnit))))
+        ctx.addSymbol("println", TypedDecl(ScBuiltin("println"), TFunction(FunctionTypeData(ArrayList([TBasic(TInt64)]), TBasic(TUnit)))))
         
         program.map { d: TypedDecl => inferDecl(d, ctx) } 
     }
 
-    private static func inferIfThenElse(_: TypedExpr, cond: TypedExpr, _: TypedExpr, _: ?TypedExpr, _: Ctx) {
+    private static func inferIfThenElse(expr: TypedExpr, cond: TypedExpr, thenBr: TypedExpr, elseBr: ?TypedExpr, ctx: Ctx) {
+        inferExpr(cond, ctx)
+        inferExpr(thenBr, ctx)
+        elseBr.map { elseBr => inferExpr(elseBr, ctx) }
         cond.ty = TBasic(TBool)
+        expr.ty = thenBr.ty
     }
 
-    private static func inferBinop(_: TypedExpr, _: CjBinaryOperator, left: TypedExpr, right: TypedExpr, ctx: Ctx) {
+    private static func inferBinop(expr: TypedExpr, op: CjBinaryOperator, left: TypedExpr, right: TypedExpr, ctx: Ctx) {
         inferExpr(left, ctx)
         inferExpr(right, ctx)
+        expr.ty = match (left.ty) {
+            case TBasic(x) =>
+                match (op) {
+                    case Add | Sub | Mul | Div | Mod | BitAnd | BitXor | BitOr => left.ty
+                    case Eq | Neq | Ge | Le | Gt | Lt | And | Or => TBasic(TBool)
+                }
+            case _ => expr.ty // Nothing we can say about type
+        }
     }
 
     private static func inferUnop(_: CjUnaryOperator, expr: TypedExpr, ctx: Ctx) {
@@ -81,10 +95,14 @@ public class Inference {
         (lefts, rights)
     }
 
-    private static func inferCall(_: TypedExpr, callee: TypedExpr, args: ArrayList<TypedExpr>, ctx: Ctx): Unit {
+    private static func inferCall(expr: TypedExpr, callee: TypedExpr, args: ArrayList<TypedExpr>, ctx: Ctx): Unit {
         inferExpr(callee, ctx)
         args.map { a: TypedExpr => inferExpr(a, ctx) }
-        // TODO: maybe something can be assumed if the function has known return type...
+        expr.ty = TUnknown
+        // match (callee.ty) {
+        //    case TFunction(x) => x.resultType
+        //    case _ => TUnknown
+        //}
     }
 
     private static func inferBlock(block: TypedBlock, ctx: Ctx) {
@@ -111,10 +129,7 @@ public class Inference {
     }
 
     private static func inferReturn(expr: TypedExpr, value: TypedExpr, ctx: Ctx) {
-        expr.ty = TNothing        
-        // TODO: Do not mark the type as unknown later, to enable optimisations
-        // Enable boxing of return value
-        value.ty = TUnknown
+        expr.ty = TNothing  
         inferExpr(value, ctx)
         ctx.addReturnedType(value.ty)
     }
@@ -171,13 +186,15 @@ public class Inference {
             case StPrimitive(StUnit) => TBasic(TUnit)
             case StPrimitive(StInt64) => TBasic(TInt64)
             case StRefType(ref) => resolveHierarhicalType(ctx.findType(ref.name)) 
-            case StFuncType(f) => TFunction(f.parameters.map { p => resolveCjType(p, ctx) }, resolveCjType(f.result, ctx))
+            case StFuncType(f) => TFunction(FunctionTypeData(f.parameters.map { p => resolveCjType(p, ctx) }, resolveCjType(f.result, ctx)))
         }
     }
 
     private static func inferFuncDecl(_: TypedDecl, f: FuncDeclData, ctx: Ctx) {
         let newCtx = ctx.enterSymbol(f.name)
         inferBlock(f.body, newCtx)
+        let retType = newCtx.returnedTypes.last ?? TBasic(TUnit)
+        f.typ.resultType = retType
         // TODO: Something cool here
         // For example if all are known as Ints, make the result Int
         // If not, make all return exprs unknwon to box them

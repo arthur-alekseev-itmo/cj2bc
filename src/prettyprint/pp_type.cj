@@ -17,9 +17,9 @@ public class PPType {
             case TAny => "Any"
             case TNothing => "Nothing" 
             case TBasic(b) => basicTypeToString(b)
-            case TFunction(p, r) => 
-                let result = typeToString(r)
-                let paramStrings = p.map(typeToString).toArray()
+            case TFunction(p) => 
+                let result = typeToString(p.resultType)
+                let paramStrings = p.parameterTypes.map(typeToString).toArray()
                 let params = String.join(paramStrings, delimiter:", ")
                 "(${params}) -> ${result}"
             case TClass(c) => c.name

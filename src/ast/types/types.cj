@@ -81,12 +81,22 @@ public class ClassType <: HierarhicalType {
     }
 }
 
+public class FunctionTypeData {
+    public let parameterTypes: ArrayList<Type>
+    public var resultType: Type
+
+    public init(parameterTypes: ArrayList<Type>, resultType: Type) {
+        this.parameterTypes = parameterTypes
+        this.resultType = resultType
+    }
+}
+
 public enum Type {
     | TUnknown
     | TAny
     | TNothing
     | TBasic(BasicType)
-    | TFunction(ArrayList<Type>, Type)
+    | TFunction(FunctionTypeData)
     | TClass(ClassType)
     | TInterface(InterfaceType)
 }
