@@ -4,7 +4,7 @@ import std.collection.ArrayList
 import cj2bc.bytecode.util.zeroExtend
 
 public class Bytecode <: ToString {
-    let instructions = ArrayList<Instruction>();
+    let instructions = ArrayList<Instruction>()
 
     public func serializeTo(target: ArrayList<Byte>): Unit {
         for (instruction in instructions) {
@@ -20,7 +20,7 @@ public class Bytecode <: ToString {
 
     public func toString(): String {
         var instructionId = 0
-        var result = StringBuilder()
+        let result = StringBuilder()
 
         for (instruction in instructions) {
             result.append("B_" + zeroExtend(4, instructionId) + " ")
@@ -39,7 +39,7 @@ public class Bytecode <: ToString {
         instructions.size
     }
 
-    public func getInstructionArray() {
+    public func getInstructionArray(): ArrayList<Instruction> {
         instructions
     }
 }

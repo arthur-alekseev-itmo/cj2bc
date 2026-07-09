@@ -1,25 +1,30 @@
-package  cj2bc.codegen
+package cj2bc.codegen.linker
 import cj2bc.bytecode.Bytecode
 import cj2bc.bytecode.Instruction
+import cj2bc.codegen.state.CodegenState
+import cj2bc.codegen.state.LinkerData
+import cj2bc.codegen.state.LinkerRelocation
+import cj2bc.codegen.state.LinkerLocation
 
 public class Linker {
-    public func link(state: CodegenState) {
+    public func link(state: CodegenState): Unit {
         let data = state.linkerData
-        for (relocation in data.relocations) {
+        for (relocation in data.getRelocations()) {
             patch(relocation, state)
         }
-        data.relocations.clear()
+        data.clearRelocations()
     }
 
     private func patch(relocation: LinkerRelocation, state: CodegenState) {
-        let index = Int64(relocation.instructionPosition)
+        let index = Int64(relocation.getPosition())
         let instructions = state.bytecode.getInstructionArray()
-        instructions[index] = match (relocation.size) {
+        let locations = state.linkerData.getLocations()
+        instructions[index] = match (relocation.getSize()) {
             case 4 =>
-                if (!state.linkerData.symbolLocations.contains(relocation.symbolName)) {
-                    throw Exception("Symbol not found: ${relocation.symbolName}")
+                if (!locations.contains(relocation.getSymbolName())) {
+                    throw Exception("Symbol not found: ${relocation.getSymbolName()}")
                 }
-                let data = state.linkerData.symbolLocations[relocation.symbolName]
+                let data = locations[relocation.getSymbolName()]
                 patch32(instructions[index], data)
             case other =>
                 throw Exception("Unsupported relocation size: ${other}")

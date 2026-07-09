@@ -5,7 +5,6 @@ import cj2bc.bytecode.util.appendInt64
 import cj2bc.bytecode.util.appendInt32
 
 public enum Instruction <: ToString {
-    // TODO: Refresh in CPP
     | Nop
     | LoadImm(UInt64)
     | Add
@@ -53,6 +52,16 @@ public enum Instruction <: ToString {
     | Not
     | WriteToRef
     | FunctionAddress(UInt32)
+    | New(UInt32)
+    | GetFieldRef(UInt32)
+    | GetField(UInt32)
+    // | CallMethod(UInt32)
+    // | GetMethod(UInt32)
+    | Box(UInt32)
+    | Unbox
+    | LoadClass(UInt32)
+    | Cast(UInt32)
+    | Init
 
     private func addCommand0To(tag: Byte, target: ArrayList<Byte>): Unit {
         target.add(tag)
@@ -118,6 +127,14 @@ public enum Instruction <: ToString {
             case Not => addCommand0To(0x2c, target)
             case WriteToRef => addCommand0To(0x2d, target)
             case FunctionAddress(x) => addCommand32To(0x2e, x, target)
+            case New(x) => addCommand32To(0x2f, x, target)
+            case GetFieldRef(x) => addCommand32To(0x30, x, target)
+            case GetField(x) => addCommand32To(0x31, x, target)
+            case Box(x) => addCommand32To(0x32, x, target)
+            case Unbox => addCommand0To(0x33, target)
+            case LoadClass(x) => addCommand32To(0x34, x, target)
+            case Cast(x) => addCommand32To(0x35, x, target)
+            case Init => addCommand0To(0x36, target)
         }
     }
 
@@ -170,6 +187,16 @@ public enum Instruction <: ToString {
             case Not => "Not"
             case WriteToRef => "WriteToRef"
             case FunctionAddress(x) => "FunctionAddress ${x}"
+            case New(x) => "New ${x}"
+            case GetField(x) => "GetField ${x}"
+            case GetFieldRef(x) => "GetFieldRef ${x}"
+            // case CallMethod(x) => "CallMethod ${x}"
+            // case GetMethod(x) => "GetMethod ${x}"
+            case Box(x) => "Box ${x}"
+            case Unbox => "Unbox"
+            case LoadClass(x) => "LoadClass ${x}"
+            case Cast(x) => "Cast ${x}"
+            case Init => "Init"
         }
     }
 }

@@ -1,253 +1,56 @@
 package cj2bc.codegen
 
-import cj2bc.simpletree.*
-import cj2bc.bytecode.Bytecode
-import cj2bc.bytecode.Instruction
-import cj2bc.utils.todo
-import std.collection.ArrayList
+import std.collection.HashMap
+
+import cj2bc.ast.tree.CjProgram
+import cj2bc.common.SymbolsScope
+import cj2bc.bytecode.*
+
+import cj2bc.codegen.state.CodegenState
+import cj2bc.codegen.compiler.Compiler
+import cj2bc.codegen.state.ClassData
+import cj2bc.codegen.linker.Linker
+import cj2bc.codegen.state.LinkerLocation
+
+public class CodegenResult <: ToString {
+    private let state: CodegenState
+
+    public init(state: CodegenState) {
+        this.state = state
+    }
+
+    public func getBytecode(): Bytecode {
+        state.bytecode
+    }
+
+    public func getClasses(): HashMap<String, ClassData> {
+        state.classes
+    }
+
+    public func getLocations(): HashMap<String, LinkerLocation> {
+        state.linkerData.getLocations()
+    }
+
+    public override func toString(): String {
+        let bcString = getBytecode().toString()
+        let relocString = state.linkerData.toString()
+        let classStrings = state.classes.values().toArray().map { x => x.toString() }
+        let classes = String.join(classStrings.toArray(), delimiter:"\n")
+        "${bcString}\n${relocString}\n${classes}"
+    }
+
+    public func toFile(): BytecodeFile {
+        let classesHeader = BytecodeClassesHeader()
+        state.classes.mapValues { v => classesHeader.addClass(v.toClassHeader()) }
+        let bytecodeHeader = BytecodeBytecodeHeader(state.bytecode)
+        BytecodeFile(classesHeader, bytecodeHeader)
+    }
+}
 
 public class Codegen {
-    private var branchIndex = 0;
-    private func getBranchNextIndex() {
-        branchIndex++
-        branchIndex
-    }
-
-    private func createFunctionHere(name: String, state: CodegenState) {
-        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
-        state.linkerData.addSymbol(name, LocGlobalFunction(idx))
-    }
-
-    private func createLabelHere(name: String, state: CodegenState) {
-        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
-        state.linkerData.addSymbol(name, LocLabel(idx))
-    }
-
-    private func createGlobalHere(name: String, state: CodegenState) {
-        let idx = UInt32(state.bytecode.getCurrentInstructionIndex())
-        state.linkerData.addSymbol(name, LocGlobalVariable(idx))
-    }
-
-    private func createRelocationHere(name: String, size: Int32, offset: Int32, state: CodegenState) {
-        let idx = Int32(state.bytecode.getCurrentInstructionIndex() - 1)
-        state.linkerData.addRelocation(name, idx, size, offset)
-    }
-
-    private func unableAsRef() {
-        throw Exception("Unable to use this expression as ref")
-    }
-
-    private func compileLoadUnitTo(state: CodegenState) {
-        state.bytecode.addInstruction(LoadImm(0))
-    }
-
-    private func compileLoadBoolTo(bool: Bool, state: CodegenState) {
-        let asInt = if (bool) { 1 } else { 0 }
-        state.bytecode.addInstruction(LoadImm(UInt64(asInt)))
-    }
-
-    private func compileLoadConstInt64To(value: Int64, state: CodegenState) {
-        state.bytecode.addInstruction(LoadImm(UInt64(value)))
-    }
-
-    private func compileIfThenElseTo(cond: SimpleExpr, thenBr: SimpleExpr, elseBr: ?SimpleExpr, state: CodegenState): Unit {
-        let branchIndex = getBranchNextIndex()
-        compileExprTo(cond, state)
-        state.bytecode.addInstruction(Instruction.Not)
-
-        state.bytecode.addInstruction(JumpTrue(UInt32.Max))
-        createRelocationHere("$BRANCH_ELSE_${branchIndex}", 4, 1, state)
-
-        compileExprTo(thenBr, state)
-        state.bytecode.addInstruction(Jump(UInt32.Max))
-        createRelocationHere("$BRANCH_END_${branchIndex}", 4, 1, state)
-        createLabelHere("$BRANCH_ELSE_${branchIndex}", state)
-
-        match (elseBr) {
-            case Some(e) => compileExprTo(e, state)
-            case None => state.bytecode.addInstruction(LoadImm(0))
-        }
-
-        let elseEndIndex = Int32(state.bytecode.getCurrentInstructionIndex())
-
-        createLabelHere("$BRANCH_END_${branchIndex}", state)
-    }
-
-    private func compileBinaryOperatorTo(op: SimpleBinaryOperator, left: SimpleExpr, right: SimpleExpr, state: CodegenState) {
-        func simple(instruction: Instruction) {
-            compileExprTo(left, state)
-            compileExprTo(right, state)
-            state.bytecode.addInstruction(instruction)
-        }
-
-        let instruction = match (op) {
-            case Add => simple(Instruction.Add)
-            case Sub => simple(Instruction.Sub)
-            case Mul => simple(Instruction.Mul)
-            case Div => simple(Instruction.Div)
-            case Mod => simple(Instruction.Mod)
-            case Eq => simple(Instruction.Eq)
-            case Neq => simple(Instruction.Neq)
-            case Le => simple(Instruction.Le)
-            case Lt => simple(Instruction.Lt)
-            case Ge => simple(Instruction.Ge)
-            case Gt => simple(Instruction.Gt)
-            case BitXor => simple(Instruction.BitXor)
-            case BitAnd => simple(Instruction.BitAnd)
-            case BitOr => simple(Instruction.BitOr)
-            case And => compileIfThenElseTo(left, right, ScConstBool(false), state)
-            case Or => compileIfThenElseTo(left, ScConstBool(true), right, state)
-        }
-    }
-
-    private func compileUnaryOpTo(op: SimpleUnaryOperator, expr: SimpleExpr, state: CodegenState) {
-        compileExprTo(expr, state)
-        let instruction = match (op) {
-            case Neg => Instruction.Neg
-            case Not => Instruction.Not
-        }
-        state.bytecode.addInstruction(instruction)
-    }
-
-    private func compileCallTo(callee: SimpleExpr, arguments: ArrayList<SimpleExpr>, state: CodegenState) {
-        arguments.map { argument: SimpleExpr => compileExprTo(argument, state) }
-        compileExprTo(callee, state)
-        state.bytecode.addInstruction(Instruction.CallObject)
-    }
-
-    private func compileVarAsRefTo(name: String, state: CodegenState) {
-        let variable = state.locals.getVariable(name) ?? throw Exception("Variable was not found: " + name)
-        match (variable) {
-            case GlobalVariable(x) => state.bytecode.addInstruction(GetGlobalRef(x))
-            case LocalVariable(x) => state.bytecode.addInstruction(GetLocalRef(x))
-            case ClosureVariable(x) => state.bytecode.addInstruction(GetClosureRef(x))
-        }
-    }
-
-    private func compileExprAsRefTo(expr: SimpleExpr, state: CodegenState) {
-        match (expr) {
-            case ScConstUnit => unableAsRef()
-            case ScConstInt64(x) => unableAsRef()
-            case ScConstBool(b) => unableAsRef()
-            case ScIfThenElse(cond, thenBr, elseBr) => unableAsRef()
-            case ScBinaryOperator(op, left, right) => unableAsRef()
-            case ScUnaryOperator(op, expr) => todo()
-            case ScCall(callee, arguments) => todo()
-            case ScBlockExpr(block) => todo()
-            case ScReturn(expr) => todo()
-            case ScAssign(target, expr) => todo()
-            case ScVarRef(name) => compileVarAsRefTo(name, state)
-        }
-    }
-
-    private func compileBlockTo(block: SimpleBlock, state: CodegenState): Unit {
-        let length = block.size
-        for (i in 0..length-1) {
-            let decl = block[i]
-            compileDeclTo(decl, true, state)
-        }
-        block.last.map { x => compileDeclTo(x, false, state) }
-    }
-
-    private func compileReturnTo(returnExpr: SimpleExpr, state: CodegenState) {
-        compileExprTo(returnExpr, state)
-        state.bytecode.addInstruction(Return)
-    }
-
-    private func compileVarTo(name: String, state: CodegenState) {
-        let variable = state.locals.getVariable(name)
-        match (variable) {
-            case Some(GlobalVariable(x)) => state.bytecode.addInstruction(LoadGlobal(x))
-            case Some(LocalVariable(x)) => state.bytecode.addInstruction(LoadLocal(x))
-            case Some(ClosureVariable(x)) => state.bytecode.addInstruction(LoadClosure(x))
-            case None =>
-                state.bytecode.addInstruction(LoadGlobal(UInt32.Max))
-                createRelocationHere(name, 4, 1, state)
-        }
-    }
-
-    private func compileAssignTo(target: SimpleExpr, expr: SimpleExpr, state: CodegenState) {
-        compileExprAsRefTo(target, state)
-        compileExprTo(expr, state)
-        state.bytecode.addInstruction(WriteToRef)
-    }
-
-    private func compileExprTo(expr: SimpleExpr, state: CodegenState): Unit {
-        match (expr) {
-            case ScConstUnit => compileLoadUnitTo(state)
-            case ScConstInt64(x) => compileLoadConstInt64To(x, state)
-            case ScConstBool(b) => compileLoadBoolTo(b, state)
-            case ScIfThenElse(cond, thenBr, elseBr) => compileIfThenElseTo(cond, thenBr, elseBr, state)
-            case ScBinaryOperator(op, left, right) => compileBinaryOperatorTo(op, left, right, state)
-            case ScUnaryOperator(op, expr) => compileUnaryOpTo(op, expr, state)
-            case ScCall(callee, arguments) => compileCallTo(callee, arguments, state)
-            case ScBlockExpr(block) => compileBlockTo(block, state)
-            case ScReturn(expr) => compileReturnTo(expr, state)
-            case ScAssign(target, expr) => compileAssignTo(target, expr, state)
-            case ScVarRef(name) => compileVarTo(name, state)
-        }
-    }
-
-    private func storePatternTo(pattern: SimplePattern, state: CodegenState) {
-        match (pattern) {
-            case ScVariable(name) =>
-                let variable = state.locals.addVariable(name)
-                match (variable) {
-                    case GlobalVariable(x) => state.bytecode.addInstruction(StoreGlobal(x))
-                    case LocalVariable(x) => state.bytecode.addInstruction(StoreLocal(x))
-                    case ClosureVariable(x) => state.bytecode.addInstruction(StoreClosure(x))
-                }
-        }
-    }
-
-    private func compileFunDeclTo(decl: FuncDeclData, state: CodegenState) {
-        createFunctionHere(decl.name, state)
-        state.pushLocalsFrame()
-        for (parameter in decl.parameters) {
-            storePatternTo(parameter, state)
-        }
-        compileBlockTo(decl.body, state)
-        state.popLocalsFrame()
-    }
-
-    private func compileVarDeclTo(pattern: SimplePattern, expr: SimpleExpr, state: CodegenState) {
-        compileExprTo(expr, state)
-        storePatternTo(pattern, state)
-    }
-
-    private func compileRunExprTo(expr: SimpleExpr, ignoreResult: Bool, state: CodegenState) {
-        compileExprTo(expr, state)
-        if (ignoreResult) {
-            state.bytecode.addInstruction(Drop)
-        }
-    }
-
-    private func compileDeclTo(decl: SimpleDecl, ignoreResult: Bool, state: CodegenState) {
-        match (decl) {
-            case ScFuncDecl(data) => compileFunDeclTo(data, state)
-            case ScVarDecl(pattern, expr) => compileVarDeclTo(pattern, expr, state)
-            case ScRunExpr(expr) => compileRunExprTo(expr, ignoreResult, state)
-        }
-    }
-
-    private func compileProgramTo(program: SimpleProgram, state: CodegenState) {
-       program.map { decl: SimpleDecl => compileDeclTo(decl, true, state) }
-    }
-
-    private func appendBuiltinsTo(state: CodegenState) {
-        // println(x) {
-        //   builin_print(x)
-        // }
-        createFunctionHere("println", state)
-        state.bytecode.addInstruction(CallBuiltin(0))
-        state.bytecode.addInstruction(LoadImm(0))
-        state.bytecode.addInstruction(Return)
-    }
-
-    public func compileProgram(program: SimpleProgram): CodegenState {
-        let state = CodegenState()
-        compileProgramTo(program, state)
-        appendBuiltinsTo(state)
-        state
+    public static func codegen(program: CjProgram, scope: SymbolsScope): CodegenResult {
+        let state = Compiler().compileProgram(program, scope)
+        Linker().link(state)
+        CodegenResult(state)
     }
 }

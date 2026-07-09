@@ -3,19 +3,23 @@ package cj2bc
 import std.fs.File
 import std.fs.OpenMode
 import std.io.readString
-import cj2bc.simpletree.SimpleParser
-import cj2bc.codegen.Codegen
-import cj2bc.bytecode.BytecodeFile
-import cj2bc.codegen.Linker
+
 import std.argopt.*
 
+import cj2bc.parse.CjParser
+import cj2bc.semantic.Analyzer
+import cj2bc.prettyprint.PPAst
+import cj2bc.codegen.state.StringHasher
+import cj2bc.codegen.Codegen
+import cj2bc.codegen.CodegenResult
+
 main(args: Array<String>): Int64 {
-    let argSpecs = [
-        Full("input", r'i', RequiredValue),
-        Full("output", r'o', RequiredValue),
-        Full("print", r'p', OptionalValue)
-    ]
     try {
+        let argSpecs = [
+            Full("input", r'i', RequiredValue),
+            Full("output", r'o', RequiredValue),
+            Full("print", r'p', OptionalValue)
+        ]
         var result = parseArguments(args, argSpecs)
 
         let input = match (result.options.get("input")) {
@@ -33,18 +37,28 @@ main(args: Array<String>): Int64 {
             case None => false
         }
 
+        // Reserve string hashes:
+        // - operator overload
+        // - some functions to be builtin
+        // All to be overriden in interpreter
+        StringHasher.reserveSymbols()
+        
+
         let inputFile = File(input, OpenMode.Read)
         let content = readString(inputFile)
-        let simpleProgram = SimpleParser().parse(content)
-        let state = Codegen().compileProgram(simpleProgram)
-        Linker().link(state)
+        let tree = CjParser.parse(content)
+        let scope = Analyzer.analyze(tree)
+        
+        PPAst.programToString(tree) |> println
+        
+        let code = Codegen.codegen(tree, scope)
 
         if (print) {
-            println(state.bytecode.toString())
-            println(state.linkerData.toString())
+            println(code.toString())
+            StringHasher.printStrings()
         }
 
-        let file = BytecodeFile(state.bytecode)
+        let file = code.toFile()
         file.save(output)
 
     } catch (e: ArgumentParseException) {

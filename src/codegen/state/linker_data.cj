@@ -1,4 +1,4 @@
-package cj2bc.codegen
+package cj2bc.codegen.state
 
 import std.collection.HashMap
 import std.collection.ArrayList
@@ -16,8 +16,24 @@ public struct LinkerRelocation <: ToString {
         this.size = size
     }
 
-    public func toString() {
+    public func toString(): String {
         return "Symbol: ${symbolName}, Offset: ${instructionOffset}, Position: ${instructionPosition}, Size: ${size}"
+    }
+
+    public func getPosition(): Int32 {
+        instructionPosition
+    }
+
+    public func getOffset(): Int32 {
+        instructionOffset
+    }
+
+    public func getSize(): Int32 {
+        size
+    }
+
+    public func getSymbolName(): String {
+        symbolName
     }
 }
 
@@ -48,7 +64,19 @@ public class LinkerData <: ToString {
         relocations.add(LinkerRelocation(location, name, size, offset))
     }
 
-    public func toString() {
+    public func getRelocations(): ArrayList<LinkerRelocation> {
+        relocations
+    }
+
+    public func clearRelocations(): Unit {
+        relocations.clear()
+    }
+
+    public func getLocations(): HashMap<String, LinkerLocation> {
+        symbolLocations
+    }
+
+    public func toString(): String {
         let sb = StringBuilder()
         sb.append("RELOCATIONS\n")
         for (relocation in relocations) {

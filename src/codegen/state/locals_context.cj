@@ -1,4 +1,4 @@
-package cj2bc.codegen
+package cj2bc.codegen.state
 
 import std.collection.HashMap
 
@@ -6,7 +6,6 @@ public enum Variable {
     | LocalVariable(UInt32)
     | ClosureVariable(UInt32)
     | GlobalVariable(UInt32)
-    // | BuiltinVariable(UInt32)
 }
 
 public class LocalsContextFrame {
@@ -57,12 +56,8 @@ public class LocalsContextFrame {
         variables.clear()
     }
 
-    public func getParent() {
+    public func getParent(): ?LocalsContextFrame {
         parent
-    }
-
-    public func getVariableIndex() {
-
     }
 }
 
